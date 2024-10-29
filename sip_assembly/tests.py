@@ -27,7 +27,7 @@ data_fixture_dir = join(settings.BASE_DIR, 'fixtures', 'json')
 bag_fixture_dir = join(settings.BASE_DIR, 'fixtures', 'bags')
 csv_fixture_dir = join(settings.BASE_DIR, 'fixtures', 'csv_creation')
 processing_config_fixture_dir = join(settings.BASE_DIR, 'fixtures', 'processing_configs')
-integration_fixture_dir = join(settings.BASE_DIR, 'fixtures', 'integration')
+integration_fixture_dir = join(settings.BASE_DIR, 'integration_fixtures')
 
 
 class CsvCreatorTests(TestCase):
