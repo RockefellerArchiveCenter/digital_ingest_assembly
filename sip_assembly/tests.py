@@ -8,7 +8,8 @@ from unittest.mock import patch
 
 import bagit
 from amclient import errors, utils
-from django.test import TestCase
+from asterism import bagit_helpers, file_helpers
+from django.test import TestCase, tag
 from django.urls import reverse
 
 from fornax import settings
@@ -26,6 +27,7 @@ data_fixture_dir = join(settings.BASE_DIR, 'fixtures', 'json')
 bag_fixture_dir = join(settings.BASE_DIR, 'fixtures', 'bags')
 csv_fixture_dir = join(settings.BASE_DIR, 'fixtures', 'csv_creation')
 processing_config_fixture_dir = join(settings.BASE_DIR, 'fixtures', 'processing_configs')
+integration_fixture_dir = join(settings.BASE_DIR, 'fixtures', 'integration')
 
 
 class CsvCreatorTests(TestCase):
@@ -359,3 +361,59 @@ class ViewTests(TestCase):
     def test_health_check_view(self):
         """Tests the health check view."""
         self.assert_status_code("get", reverse("ping"), 200)
+
+
+@tag("integration")
+class ArchivematicaIntegrationTests(TestCase):
+    """Provides integration tests for use during Archivematica migration.
+
+    Running these tests will start a small transfer in each configured origin.
+    This transfer is set to not store either an AIP or a DIP.
+    """
+
+    def test_processing_config(self):
+        """Ensure a processing configuration is returned as expected."""
+        for origin in settings.ARCHIVEMATICA_ORIGINS:
+            client = ArchivematicaClientMixin().get_client(origin)
+            config = ArchivematicaClientMixin().get_processing_config(client)
+            self.assertIsInstance(config, str)
+
+    def test_close_packages(self):
+        """Ensure packages are closed as expected."""
+        for type in ['transfer', 'ingest']:
+            removed = ArchivematicaClientMixin().remove_completed(type)
+            self.assertIsInstance(removed, tuple)
+            self.assertIn(type, removed[0])
+
+    def test_rights_validation(self):
+        """Ensure rights.csv files are validated as expected."""
+        with open(join(integration_fixture_dir, 'valid_rights.csv'), "r") as rightscsv:
+            for origin in settings.ARCHIVEMATICA_ORIGINS:
+                client = ArchivematicaClientMixin().get_client(origin)
+                client.enhanced_errors = True
+                valid = client.validate_csv("rights", rightscsv)
+                self.assertEqual(valid, {'valid': True})
+                rightscsv.seek(0)
+
+    def test_start_package(self):
+        """Ensures packages are started as expected.
+
+        This test will start a small package named `integration_test` in each configured origin.
+        """
+        bag_name = 'integration_test'
+        transfer_path = join(integration_fixture_dir, bag_name)
+        for origin in settings.ARCHIVEMATICA_ORIGINS:
+            client = ArchivematicaClientMixin().get_client(origin)
+            client.processing_config = 'integration_test'
+            config = ArchivematicaClientMixin().get_processing_config(client)
+            with open(join(transfer_path, 'processingMCP.xml'), 'w') as f:
+                f.write(config)
+            bagit_helpers.update_manifests(transfer_path)
+            tar_path = join(settings.DEST_DIR, f"{bag_name}.tar.gz")
+            file_helpers.make_tarfile(transfer_path, tar_path, compressed=True)
+
+            client.transfer_directory = f"{bag_name}.tar.gz"
+            client.transfer_name = bag_name
+            client.transfer_type = 'zipped bag'
+            started = client.create_package()
+            self.assertIsInstance(started, dict)
