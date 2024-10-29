@@ -402,18 +402,21 @@ class ArchivematicaIntegrationTests(SimpleTestCase):
         """
         bag_name = 'integration_test'
         transfer_path = join(integration_fixture_dir, bag_name)
+        n = 1
         for origin in settings.ARCHIVEMATICA_ORIGINS:
+            current_bag_name = f"{bag_name}_{n}"
             client = ArchivematicaClientMixin().get_client(origin)
             client.processing_config = 'integration_test'
             config = ArchivematicaClientMixin().get_processing_config(client)
             with open(join(transfer_path, 'processingMCP.xml'), 'w') as f:
                 f.write(config)
             bagit_helpers.update_manifests(transfer_path)
-            tar_path = join(settings.DEST_DIR, f"{bag_name}.tar.gz")
+            tar_path = join(settings.DEST_DIR, f"{current_bag_name}.tar.gz")
             file_helpers.make_tarfile(transfer_path, tar_path, compressed=True)
 
-            client.transfer_directory = f"{bag_name}.tar.gz"
-            client.transfer_name = bag_name
+            client.transfer_directory = f"{current_bag_name}.tar.gz"
+            client.transfer_name = current_bag_name
             client.transfer_type = 'zipped bag'
             started = client.create_package()
             self.assertIsInstance(started, dict)
+            n += 1
