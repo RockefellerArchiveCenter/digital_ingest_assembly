@@ -9,7 +9,7 @@ from unittest.mock import patch
 import bagit
 from amclient import errors, utils
 from asterism import bagit_helpers, file_helpers
-from django.test import TestCase, tag
+from django.test import SimpleTestCase, TestCase, tag
 from django.urls import reverse
 
 from fornax import settings
@@ -364,7 +364,7 @@ class ViewTests(TestCase):
 
 
 @tag("integration")
-class ArchivematicaIntegrationTests(TestCase):
+class ArchivematicaIntegrationTests(SimpleTestCase):
     """Provides integration tests for use during Archivematica migration.
 
     Running these tests will start a small transfer in each configured origin.
