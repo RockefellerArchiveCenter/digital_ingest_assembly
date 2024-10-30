@@ -405,7 +405,7 @@ class ArchivematicaIntegrationTests(SimpleTestCase):
         n = 1
         for origin in settings.ARCHIVEMATICA_ORIGINS:
             current_bag_name = f"{bag_name}_{n}"
-            current_bag_path = (join(integration_fixture_dir, current_bag_name))
+            current_bag_path = join(integration_fixture_dir, current_bag_name)
             shutil.copytree(transfer_path, current_bag_path)
             client = ArchivematicaClientMixin().get_client(origin)
             client.processing_config = 'integration_test'
@@ -422,3 +422,4 @@ class ArchivematicaIntegrationTests(SimpleTestCase):
             started = client.create_package()
             self.assertIsInstance(started, dict)
             n += 1
+            shutil.rmtree(current_bag_path)
