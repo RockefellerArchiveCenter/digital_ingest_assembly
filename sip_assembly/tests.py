@@ -405,14 +405,16 @@ class ArchivematicaIntegrationTests(SimpleTestCase):
         n = 1
         for origin in settings.ARCHIVEMATICA_ORIGINS:
             current_bag_name = f"{bag_name}_{n}"
+            current_bag_path = (join(integration_fixture_dir, current_bag_name))
+            shutil.copytree(transfer_path, current_bag_path)
             client = ArchivematicaClientMixin().get_client(origin)
             client.processing_config = 'integration_test'
             config = ArchivematicaClientMixin().get_processing_config(client)
-            with open(join(transfer_path, 'processingMCP.xml'), 'w') as f:
+            with open(join(current_bag_path, 'processingMCP.xml'), 'w') as f:
                 f.write(config)
-            bagit_helpers.update_manifests(transfer_path)
+            bagit_helpers.update_manifests(current_bag_path)
             tar_path = join(settings.DEST_DIR, f"{current_bag_name}.tar.gz")
-            file_helpers.make_tarfile(transfer_path, tar_path, compressed=True)
+            file_helpers.make_tarfile(current_bag_path, tar_path, compressed=True)
 
             client.transfer_directory = f"{current_bag_name}.tar.gz"
             client.transfer_name = current_bag_name
