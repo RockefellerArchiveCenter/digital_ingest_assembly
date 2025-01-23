@@ -4,5 +4,5 @@ class SIPMaker(object)
 if __name__ == '__main__':
     SIPMaker().run()
 
-"""Mixin to handle communication with Archivematica."""
+
 
