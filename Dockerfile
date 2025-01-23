@@ -1,6 +1,10 @@
-FROM python:3.10
+FROM python:3.11-slim AS base
 
 ENV PYTHONUNBUFFERED 1
+
+FROM base AS test
+
+FROM base AS build
 
 RUN apt-get update \
   && echo 'slapd/root_password password password' | debconf-set-selections \
