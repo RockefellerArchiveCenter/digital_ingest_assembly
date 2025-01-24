@@ -1,4 +1,4 @@
-class SIPMaker(object):
+class SIPMaker():
     pass
 
 if __name__ == '__main__':
