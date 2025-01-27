@@ -1,21 +1,12 @@
-FROM python:3.11-slim AS base
-
-ENV PYTHONUNBUFFERED 1
+FROM python:3.11-slim-buster AS base
+WORKDIR /code
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY src src
 
 FROM base AS test
+COPY tests tests
+RUN pip install -r tests/test_requirements.txt 
 
 FROM base AS build
-
-RUN apt-get update \
-  && echo 'slapd/root_password password password' | debconf-set-selections \
-  && echo 'slapd/root_password_again password password' | debconf-set-selections \
-  && DEBIAN_FRONTEND=noninteractive apt-get -y install sudo \
-    rsync \
-  && apt-get clean \
-  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
-RUN mkdir /code
-WORKDIR /code
-ADD requirements.txt /code/
-RUN pip install --upgrade pip && pip install -r requirements.txt
-ADD . /code/
+CMD ["python", "src/sip_creator.py"]
