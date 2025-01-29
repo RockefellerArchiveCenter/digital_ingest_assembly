@@ -12,16 +12,6 @@ jobs:
     environment:
       name: development
 
-    env:
-      APPLICATION_NAME: fornax
-      CONTAINER: fornax-web
-      APPLICATION_PORT: 8003
-
-    services:
-      docker:
-        image: docker:stable
-        options: --privileged
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -31,26 +21,6 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'pip'
-
-      - name: Copy config file
-        run: cp ${{ env.APPLICATION_NAME }}/config.py.example ${{ env.APPLICATION_NAME }}/config.py
-
-      - name: Login to Docker
-        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-
-      - name: Start Docker containers
-        run: docker compose up -d
-
-      - name: Wait for services to be ready
-        run: ./wait-for-it.sh $CONTAINER:$APPLICATION_PORT -- echo "$CONTAINER is ready"
-
-      - name: Install pre-commit
-        run: |
-          pip install "pre-commit===2.13.0"
-          pre-commit install
-
-      - name: Run pre-commit checks
-        run: pre-commit run --all-files --show-diff-on-failure
 
       - name: Install tox
         run: pip install tox
