@@ -8,12 +8,12 @@ fornax is part of [Project Electron](https://github.com/RockefellerArchiveCenter
 
 If you have [git](https://git-scm.com/) and [Docker](https://store.docker.com/search?type=edition&offering=community) installed, using this repository is as simple as:
 
-    ```
+    
     git clone https://github.com/RockefellerArchiveCenter/fornax.git
     cd fornax
     docker build -t fornax .
     docer run fornax
-    ```
+    
 
 
 ### Configuration
