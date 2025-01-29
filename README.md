@@ -4,82 +4,39 @@ A microservice to create Archivematica-compliant Submission Information Packages
 
 fornax is part of [Project Electron](https://github.com/RockefellerArchiveCenter/project_electron), an initiative to build sustainable, open and user-centered infrastructure for the archival management of digital records at the [Rockefeller Archive Center](http://rockarch.org/).
 
-## Setup
+## Getting Started
 
-Install [git](https://git-scm.com/) and clone the repository
+If you have [git](https://git-scm.com/) and [Docker](https://store.docker.com/search?type=edition&offering=community) installed, using this repository is as simple as:
 
-    $ git clone git@github.com:RockefellerArchiveCenter/fornax.git
+    ```
+    git clone https://github.com/RockefellerArchiveCenter/fornax.git
+    cd fornax
+    docker build -t fornax .
+    docer run fornax
+    ```
 
-Install [Docker](https://store.docker.com/search?type=edition&offering=community) and run docker-compose from the root directory
-
-    $ cd fornax
-    $ docker-compose up
-
-Once the application starts successfully, you should be able to access the application in your browser at `http://localhost:8003`
-
-When you're done, shut down docker-compose
-
-    $ docker-compose down
-
-Or, if you want to remove all data
-
-    $ docker-compose down -v
 
 ### Configuration
 
 You will need to edit configuration values in `fornax/config.py` to point to your instance of Archivematica.
 
-## Services
+## Usage
 
-fornax has six services, all of which are exposed via HTTP endpoints (see [Routes](#routes) section below):
+This repository is intended to be deployed as an ECS Task in AWS infrastructure.
 
-* Store SIPs - Creates a SIP object.
-* SIP Assembly - This is the main service for this application, and consists of the following steps:
-  * Moving the SIP to the processing directory (SIPS are validated before and after moving).
-  * Restructuring the SIP for Archivematica compliance by:
-    * Moving objects in the `data` directory to `data/objects`.
-    * Adding an empty `logs` directory.
-    * Adding a `metadata` directory containing a `submissionDocumentation` subdirectory.
-  * Creating `rights.csv` and adding it to the `metadata` directory.
-  * Creating submission documentation and adding to the `metadata/submissionDocumentation` subdirectory.
-  * Adding an identifier to `bag-info.txt` using the `Internal-Sender-Identifier` field.
-  * Adding a `processingMCP.xml` file which sets processing configurations for Archivematica.
-  * Updating bag manifests to account for restructuring and changes to files.
-  * Delivering the SIP to the Archivematica Transfer Source (SIPS are validated before and after moving).
-* Create Transfer - starts and approves the next assembled transfer in Archivematica.
-* Remove Completed Transfers/Ingests - hides completed transfers or ingests in the Archivematica Dashboard to avoid performance issues.
-* Cleanup - removes files from the destination directory.
-* Request Cleanup - sends a POST request to another service requesting cleanup of the source directory. fornax only has read access for this directory.
-
-For an example of the data fornax expects to receive (both bags and JSON), see the `fixtures/` directory
-
-
-### Routes
-
-| Method | URL | Parameters | Response  | Behavior  |
-|--------|-----|---|---|---|
-|GET|/sips| |200|Returns a list of SIPs|
-|GET|/sips/{id}| |200|Returns data about an individual SIP|
-|POST|/sips||200|Creates a SIP object from an transfer in Aurora.|
-|POST|/assemble||200|Runs the SIPAssembly routine.|
-|POST|/start||200|Starts and approves  the next transfer in Archivematica.|
-|POST|/remove-transfers||200|Hides transfers in the Archivematica Dashboard.|
-|POST|/remove-ingests||200|Hides ingests in the Archivematica Dashboard.|
-|POST|/cleanup||200|Removes files from destination directory.|
-|POST|/request-cleanup||200|Notifies another service that processing is complete.|
-|GET|/status||200|Return the status of the microservice|
-|GET|/schema.json||200|Returns the OpenAPI schema for this application|
-
-
-## Archivematica Integration Testing
-When migrating Archivematica, it is necessary to test that Fornax can start transfers as expected. To run these integration tests, target the Python environment for this application and pass the `tag` flag to the tests management command: `env/bin/python manage.py test --tag=integration`.
-
-Running these tests will start a small package in all configured origins. This package will be set to not store the AIP or the DIP, but some manual cleanup will be required.
-
-## Development
-This repository contains a configuration file for git [pre-commit](https://pre-commit.com/) hooks which help ensure that code is linted before it is checked into version control. It is strongly recommended that you install these hooks locally by installing pre-commit and running `pre-commit install`.
-
-
-## License
+### License
 
 This code is released under an [MIT License](LICENSE).
+
+## Contributing
+
+This is an open source project and we welcome contributions! If you want to fix a bug, or have an idea of how to enhance the application, the process looks like this:
+
+1. File an issue in this repository. This will provide a location to discuss proposed implementations of fixes or enhancements, and can then be tied to a subsequent pull request.
+2. If you have an idea of how to fix the bug (or make the improvements), fork the repository and work in your own branch. When you are done, push the branch back to this repository and set up a pull request. Automated unit tests are run on all pull requests. Any new code should have unit test coverage, documentation (if necessary), and should conform to the Python PEP8 style guidelines.
+3. After some back and forth between you and core committers (or individuals who have privileges to commit to the base branch of this repository), your code will probably be merged, perhaps with some minor changes.
+
+This repository contains a configuration file for git [pre-commit](https://pre-commit.com/) hooks which help ensure that code is linted before it is checked into version control. It is strongly recommended that you install these hooks locally by installing pre-commit and running `pre-commit install`.
+
+## Tests
+New code should have unit tests. Tests can be run using [tox](https://tox.readthedocs.io/).
