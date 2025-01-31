@@ -9,7 +9,7 @@ from asterism import bagit_helpers, file_helpers
 from fornax import settings
 from sip_assembly import routines_helpers as helpers
 
-from .csv_creator import CsvCreator
+from ..src.csv_creator import CsvCreator
 from .models import SIP
 
 

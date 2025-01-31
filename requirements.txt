@@ -10,56 +10,50 @@ asgiref==3.8.1
     # via django
 asterism==1.1.0
     # via -r requirements.in
-attrs==24.3.0
-    # via
-    #   jsonschema
-    #   referencing
+aws-assume-role-lib==2.10.0
+    # via -r requirements.in
 bagit==1.8.1
     # via
     #   -r requirements.in
     #   asterism
+boto3==1.36.11
+    # via
+    #   -r requirements.in
+    #   aws-assume-role-lib
+botocore==1.36.11
+    # via
+    #   boto3
+    #   s3transfer
 certifi==2024.12.14
     # via requests
 charset-normalizer==3.4.1
     # via requests
 django==4.2.17
     # via
-    #   -r requirements.in
     #   asterism
     #   djangorestframework
 djangorestframework==3.15.2
-    # via
-    #   -r requirements.in
-    #   asterism
+    # via asterism
 idna==3.10
     # via requests
-jsonschema==4.23.0
-    # via -r requirements.in
-jsonschema-specifications==2024.10.1
-    # via jsonschema
-psycopg2==2.9.10
-    # via -r requirements.in
-pyyaml==6.0.2
-    # via -r requirements.in
-referencing==0.35.1
+jmespath==1.0.1
     # via
-    #   jsonschema
-    #   jsonschema-specifications
+    #   boto3
+    #   botocore
+python-dateutil==2.9.0.post0
+    # via botocore
 requests==2.32.3
     # via
     #   -r requirements.in
     #   amclient
-rpds-py==0.22.3
-    # via
-    #   jsonschema
-    #   referencing
+s3transfer==0.11.2
+    # via boto3
+six==1.17.0
+    # via python-dateutil
 sqlparse==0.5.3
     # via django
-typing-extensions==4.12.2
-    # via asgiref
-uritemplate==4.1.1
-    # via -r requirements.in
 urllib3==2.3.0
     # via
     #   amclient
+    #   botocore
     #   requests

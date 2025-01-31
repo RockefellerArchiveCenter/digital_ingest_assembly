@@ -14,7 +14,7 @@ from django.urls import reverse
 
 from fornax import settings
 
-from .csv_creator import CsvCreator
+from ..src.csv_creator import CsvCreator
 from .models import SIP
 from .routines import (ArchivematicaClientMixin, AssemblePackageRoutine,
                        BaseRoutine, CleanupPackageRequester,
@@ -231,7 +231,15 @@ class RoutineTests(TestCase):
         """Asserts package is successfully created if another package is not processing in Archivematica."""
         self.set_process_status(SIP.ASSEMBLED)
         mock_create.return_value = {"id": "12345"}
-        mock_status.return_value = {'type': 'transfer', 'path': '/var/archivematica/sharedDirectory/currentlyProcessing/59193ace-30c3-4a3b-a656-9232ebc7ce0e.tar.gz', 'directory': '59193ace-30c3-4a3b-a656-9232ebc7ce0e.tar.gz', 'name': '59193ace-30c3-4a3b-a656-9232ebc7ce0e.tar.gz', 'uuid': '1651add2-d21b-445a-abd4-444450648ba9', 'microservice': 'Extract zipped bag transfer', 'status': 'STORED', 'message': 'Fetched status for 1651add2-d21b-445a-abd4-444450648ba9 successfully.'}
+        mock_status.return_value = {
+            'type': 'transfer',
+            'path': '/var/archivematica/sharedDirectory/currentlyProcessing/59193ace-30c3-4a3b-a656-9232ebc7ce0e.tar.gz',
+            'directory': '59193ace-30c3-4a3b-a656-9232ebc7ce0e.tar.gz',
+            'name': '59193ace-30c3-4a3b-a656-9232ebc7ce0e.tar.gz',
+            'uuid': '1651add2-d21b-445a-abd4-444450648ba9',
+            'microservice': 'Extract zipped bag transfer',
+            'status': 'STORED',
+            'message': 'Fetched status for 1651add2-d21b-445a-abd4-444450648ba9 successfully.'}
         message, sip_id = StartPackageRoutine().run()
         sip = SIP.objects.get(bag_identifier=sip_id[0])
         self.assertEqual(message, "Transfer started.")
@@ -244,7 +252,15 @@ class RoutineTests(TestCase):
         last_started.process_status = SIP.APPROVED
         last_started.archivematica_uuid = "12345"
         last_started.save()
-        mock_status.return_value = {'type': 'transfer', 'path': '/var/archivematica/sharedDirectory/currentlyProcessing/59193ace-30c3-4a3b-a656-9232ebc7ce0e.tar.gz', 'directory': '59193ace-30c3-4a3b-a656-9232ebc7ce0e.tar.gz', 'name': '59193ace-30c3-4a3b-a656-9232ebc7ce0e.tar.gz', 'uuid': '1651add2-d21b-445a-abd4-444450648ba9', 'microservice': 'Extract zipped bag transfer', 'status': 'PROCESSING', 'message': 'Fetched status for 1651add2-d21b-445a-abd4-444450648ba9 successfully.'}
+        mock_status.return_value = {
+            'type': 'transfer',
+            'path': '/var/archivematica/sharedDirectory/currentlyProcessing/59193ace-30c3-4a3b-a656-9232ebc7ce0e.tar.gz',
+            'directory': '59193ace-30c3-4a3b-a656-9232ebc7ce0e.tar.gz',
+            'name': '59193ace-30c3-4a3b-a656-9232ebc7ce0e.tar.gz',
+            'uuid': '1651add2-d21b-445a-abd4-444450648ba9',
+            'microservice': 'Extract zipped bag transfer',
+            'status': 'PROCESSING',
+            'message': 'Fetched status for 1651add2-d21b-445a-abd4-444450648ba9 successfully.'}
         message, sip_id = StartPackageRoutine().run()
         sip = SIP.objects.get(bag_identifier=sip_id[0])
         self.assertEqual(message, "Another transfer is processing, waiting until it finishes.")
