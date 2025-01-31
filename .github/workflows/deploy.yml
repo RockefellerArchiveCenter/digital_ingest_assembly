@@ -15,8 +15,6 @@ jobs:
 
     env:
       APPLICATION_NAME: fornax
-      CONTAINER: fornax-web
-      APPLICATION_PORT: 8003
 
     services:
       docker:
