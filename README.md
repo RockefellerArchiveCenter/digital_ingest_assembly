@@ -12,13 +12,8 @@ If you have [git](https://git-scm.com/) and [Docker](https://store.docker.com/se
     git clone https://github.com/RockefellerArchiveCenter/fornax.git
     cd fornax
     docker build -t fornax .
-    docer run fornax
+    docker run fornax
     
-
-
-### Configuration
-
-You will need to edit configuration values in `fornax/config.py` to point to your instance of Archivematica.
 
 ## Usage
 
