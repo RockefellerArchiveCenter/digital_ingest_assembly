@@ -136,14 +136,15 @@ class SIPCreatorTests(TestCase):
         self.assertTrue(Path(self.args[5], f'{self.args[2]}.tar.gz').is_file())
         self.assertFalse(package_path.exists())
 
-    def test_move_to_destination(self):
-        # assert moved to dest
-        # assert temp file rmoved
-        pass
-
     def test_cleanup_successful(self):
-        # assert source file rmoved
-        pass
+        """Asserts package is cleaned up after success."""
+        Path(self.args[3]).mkdir()
+        source_path = Path(self.args[3], f"{self.args[2]}.tar.gz")
+        source_path.touch()
+
+        self.sip_creator.cleanup_successful()
+
+        self.assertFalse(source_path.exists())
 
     def test_cleanup_failed(self):
         # assert destination removed
