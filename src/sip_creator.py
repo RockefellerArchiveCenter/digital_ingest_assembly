@@ -38,8 +38,7 @@ class SIPCreator(object):
             self.restructure(extracted_path)
             self.add_data(extracted_path, package_data)
             self.validate(extracted_path)
-            packaged_path = self.archive(extracted_path)
-            self.move_to_destination(packaged_path)
+            self.archive(extracted_path)
             self.cleanup_successful()
             self.send_success_message(package_data)
         except Exception as e:
@@ -138,16 +137,10 @@ class SIPCreator(object):
 
     def archive(self, extracted_path):
         """Creates a compressed TAR file from a package."""
-        tar_path = extracted_path / f'{self.package_id}.tar.gz'
+        tar_path = Path(self.dest_dir, f'{self.package_id}.tar.gz')
         with tarfile.open(tar_path, "w:gz", compresslevel=1) as tar:
             tar.add(extracted_path, arcname=extracted_path.name)
         rmtree(extracted_path)
-        return tar_path
-
-    def move_to_destination(self, packaged_path):
-        """Moves archived package to destination directory."""
-        destination_path = Path(self.dest_dir, f"{self.package_id}.tar.gz")
-        packaged_path.rename(destination_path)
 
     def cleanup_successful(self):
         """Removes file from source directory."""

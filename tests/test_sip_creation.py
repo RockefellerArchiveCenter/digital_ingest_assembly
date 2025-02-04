@@ -16,6 +16,7 @@ class SIPCreatorTests(TestCase):
                      'arn:aws:iam::123456789012:role/digital-ingest-sns-role', 'topic', 'arn:aws:iam::123456789012:role/digital-ingest-ssm-role']
         self.sip_creator = SIPCreator(*self.args)
         self.fixture_path = Path('tests', 'fixtures')
+        # TODO setup dirs
 
     @patch('src.sip_creator.SIPCreator.get_config')
     def test_init(self, mock_config):
@@ -38,7 +39,6 @@ class SIPCreatorTests(TestCase):
     @patch('src.sip_creator.SIPCreator.cleanup_failed')
     @patch('src.sip_creator.SIPCreator.send_success_message')
     @patch('src.sip_creator.SIPCreator.cleanup_successful')
-    @patch('src.sip_creator.SIPCreator.move_to_destination')
     @patch('src.sip_creator.SIPCreator.archive')
     @patch('src.sip_creator.SIPCreator.add_data')
     @patch('src.sip_creator.SIPCreator.restructure')
@@ -53,7 +53,6 @@ class SIPCreatorTests(TestCase):
             mock_restructure,
             mock_add_data,
             mock_archive,
-            mock_move,
             mock_cleanup_successful,
             mock_success_message,
             mock_cleanup_failed,
@@ -73,7 +72,6 @@ class SIPCreatorTests(TestCase):
         mock_restructure.assert_called_once_with(extracted_path)
         mock_add_data.assert_called_once_with(extracted_path, package_data)
         mock_archive.assert_called_once_with(extracted_path)
-        mock_move.assert_called_once_with(packaged_path)
         mock_cleanup_successful.assert_called_once_with()
         mock_success_message.assert_called_once_with(package_data)
         mock_cleanup_failed.assert_not_called()
@@ -128,9 +126,15 @@ class SIPCreatorTests(TestCase):
         pass
 
     def test_archive(self):
-        # assert packaged file
-        # assert not temp file
-        pass
+        """Asserts package is archived to correct location"""
+        package_path = Path(self.args[3], self.args[2])
+        package_path.mkdir(parents=True)
+        Path(self.args[5]).mkdir()
+
+        self.sip_creator.archive(package_path)
+
+        self.assertTrue(Path(self.args[5], f'{self.args[2]}.tar.gz').is_file())
+        self.assertFalse(package_path.exists())
 
     def test_move_to_destination(self):
         # assert moved to dest
@@ -147,5 +151,6 @@ class SIPCreatorTests(TestCase):
         pass
 
     def tearDown(self):
+        # TODO cleanup dirs
         if Path(self.args[3]).is_dir():
             rmtree(self.args[3])
