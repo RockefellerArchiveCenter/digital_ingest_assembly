@@ -1,5 +1,3 @@
-import csv
-
 import boto3
 from amclient import AMClient, errors
 from aws_assume_role_lib import assume_role
@@ -21,11 +19,6 @@ class ArchivematicaClient():
             am_url=am_url,
             transfer_source=transfer_source,
             processing_config=processing_config)
-        self.field_names = [
-            'file', 'basis', 'status', 'determination_date', 'jurisdiction',
-            'start_date', 'end_date', 'terms', 'citation', 'note', 'grant_act',
-            'grant_restriction', 'grant_start_date', 'grant_end_date',
-            'grant_note', 'doc_id_type', 'doc_id_value', 'doc_id_role']
 
     def get_processing_config(self):
         """Adds a processing configuration file from Archivematica to a package."""
@@ -34,36 +27,14 @@ class ArchivematicaClient():
             raise Exception(errors.error_lookup(processing_config), processing_config)
         return processing_config
 
-    def add_rights_csv(self, package_path, rights_statements):
-        """Adds a rights CSV to a package."""
-        csv_filepath = package_path / 'data' / 'metadata' / 'rights.csv'
-        csvfile, csvwriter = self.setup_csv_file(csv_filepath)
-        for f in (package_path / 'data' / 'objects').rglob('*'):
-            file_string = str(f).replace(str(package_path), '').lstrip('/')
+    def get_rights_data(self, file_path_strings, rights_statements):
+        """Gets rights information."""
+        rights_data = []
+        for file_string in file_path_strings:
             rights_rows = self.get_rights_rows(file_string, rights_statements)
             for rights_row in rights_rows:
-                csvwriter.writerow(rights_row)
-        self.validate_rights_csv(csvfile)
-        csvfile.close()
-
-    def setup_csv_file(self, csv_filepath):
-        """
-        If file already exists, sets mode to append. Otherwise, creates new file and
-        writes a header row.
-
-        Returns:
-            csvfile: file object
-            csvwriter csv writer object
-        """
-        if not csv_filepath.is_file():
-            csv_filepath.parent.mkdir(exist_ok=True)
-            csvfile = open(csv_filepath, 'w')
-            csvwriter = csv.writer(csvfile)
-            csvwriter.writerow(self.field_names)
-        else:
-            csvfile = open(csv_filepath, 'a')
-            csvwriter = csv.writer(csvfile)
-        return csvfile, csvwriter
+                rights_data.append(rights_row)
+        return rights_data
 
     def get_rights_rows(self, file_string, rights_statements):
         """Gets rows (array of arrays) for each rights statement for a file."""

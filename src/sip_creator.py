@@ -1,3 +1,4 @@
+import csv
 import tarfile
 import traceback
 from pathlib import Path
@@ -109,10 +110,24 @@ class SIPMaker(object):
     def add_data(self, extracted_path, package_data):
         """Adds rights CSV, processing config, and data to bag-info.txt"""
         am_client = ArchivematicaClient(package_data['origin'])
+
         if package_data.get('rights_statements'):
-            am_client.add_rights_csv(
-                extracted_path,
+            rights_csv_field_names = [
+                'file', 'basis', 'status', 'determination_date', 'jurisdiction',
+                'start_date', 'end_date', 'terms', 'citation', 'note', 'grant_act',
+                'grant_restriction', 'grant_start_date', 'grant_end_date',
+                'grant_note', 'doc_id_type', 'doc_id_value', 'doc_id_role']
+            file_names = [str(f).replace(str(extracted_path), '').lstrip('/') for f in (extracted_path / 'data' / 'objects').rglob('*')]
+            rights_data = am_client.get_rights_data(
+                file_names,
                 package_data['rights_statements'])
+            csv_filepath = extracted_path / 'data' / 'metadata' / 'rights.csv'
+            csv_filepath.parent.mkdir(exist_ok=True)
+            with open(csv_filepath, 'w') as csvfile:
+                csvwriter = csv.writer(csvfile)
+                csvwriter.writerow(rights_csv_field_names)
+                csvwriter.writerows(rights_data)
+            self.validate_rights_csv(csvfile)
 
         processing_config = am_client.get_processing_config()
         with open(extracted_path / 'processingMCP.xml', 'w') as f:

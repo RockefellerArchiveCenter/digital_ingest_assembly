@@ -40,8 +40,6 @@ class ArchivematicaClientTests(TestCase):
         self.assertEqual(self.client.client.am_url, self.args[2])
         self.assertEqual(self.client.client.transfer_source, self.args[3])
         self.assertEqual(self.client.client.processing_config, self.args[4])
-        self.assertIsInstance(self.client.field_names, list)
-        self.assertEqual(len(self.client.field_names), 18)
 
     @patch('amclient.AMClient.get_processing_config')
     def test_get_processing_config(self, mock_processing_config):
@@ -56,7 +54,7 @@ class ArchivematicaClientTests(TestCase):
 
     @patch('amclient.AMClient.validate_csv')
     @patch('src.clients.ArchivematicaClient.get_rights_rows')
-    def test_add_rights_csv(self, mock_rights_rows, mock_validate):
+    def test_get_rights_data(self, mock_rights_rows, mock_validate):
         mock_validate.return_value = {"valid": "true"}
         rights_row = [
             'data/objects/foo.txt',
@@ -80,15 +78,12 @@ class ArchivematicaClientTests(TestCase):
         mock_rights_rows.return_value = [rights_row]
         with open(self.fixture_path / 'aurora_example.json', 'r') as json_file:
             json_data = json.load(json_file)
-        self.client.add_rights_csv(
-            self.tmp_path / "aurora_example",
+        output = self.client.get_rights_data(
+            ["data/objects/sample.txt"],
             json_data["bag_data"]["rights_statements"])
-        self.assertTrue((self.tmp_path / 'aurora_example' / 'data' / 'metadata' / 'rights.csv').is_file())
-        with open(self.tmp_path / 'aurora_example' / 'data' / 'metadata' / 'rights.csv', 'r') as csv_file:
-            content = csv_file.readlines()
-            self.assertEqual(len(content), 2)
-            self.assertEqual(content[0].rstrip('\n').split(','), self.client.field_names)
-            self.assertEqual(content[1].rstrip('\n').split(','), rights_row)
+        print(output)
+        self.assertEqual(len(output), 1)
+        self.assertEqual(output[0], rights_row)
 
     @patch('src.clients.ArchivematicaClient.get_grant_restriction_rows')
     @patch('src.clients.ArchivematicaClient.get_basis_fields')
