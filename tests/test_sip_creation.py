@@ -147,9 +147,18 @@ class SIPCreatorTests(TestCase):
         self.assertFalse(source_path.exists())
 
     def test_cleanup_failed(self):
-        # assert destination removed
-        # assert temp files (packaged and unpackged) removed
-        pass
+        package_name = f"{self.args[2]}.tar.gz"
+        Path(self.args[4], self.args[2]).mkdir(parents=True)
+        Path(self.args[4], package_name).touch()
+        Path(self.args[5], package_name).touch()
+
+        self.sip_creator.cleanup_failed()
+
+        for path in [
+                Path(self.args[4], package_name),
+                Path(self.args[5], package_name),
+                Path(self.args[4], self.args[2])]:
+            self.assertFalse(path.exists())
 
     def tearDown(self):
         # TODO cleanup dirs
