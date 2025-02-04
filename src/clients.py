@@ -27,13 +27,12 @@ class ArchivematicaClient():
             'grant_restriction', 'grant_start_date', 'grant_end_date',
             'grant_note', 'doc_id_type', 'doc_id_value', 'doc_id_role']
 
-    def add_processing_config(self, package_path):
+    def get_processing_config(self):
         """Adds a processing configuration file from Archivematica to a package."""
         processing_config = self.client.get_processing_config()
         if isinstance(processing_config, int):
             raise Exception(errors.error_lookup(processing_config), processing_config)
-        with open(package_path / 'processingMCP.xml', 'w') as f:
-            f.write(processing_config)
+        return processing_config
 
     def add_rights_csv(self, package_path, rights_statements):
         """Adds a rights CSV to a package."""

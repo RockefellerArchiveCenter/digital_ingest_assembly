@@ -24,34 +24,31 @@ class ArchivematicaClientTests(TestCase):
         self.tmp_path.mkdir()
         for directory in ['aurora_example', 'digitization_example']:
             copytree(self.fixture_path / directory, self.tmp_path / directory)
-        self.am_api_key = 'am_api_key'
-        self.am_user_name = 'am_user_name'
-        self.am_url = 'am_url'
-        self.transfer_source = 'transfer_source'
-        self.processing_config = 'processing_config'
-        self.client = ArchivematicaClient(
-            self.am_api_key,
-            self.am_user_name,
-            self.am_url,
-            self.transfer_source,
-            self.processing_config)
+        self.args = [
+            'am_api_key',
+            'am_user_name',
+            'am_url',
+            'transfer_source',
+            'processing_config']
+        self.client = ArchivematicaClient(*self.args)
 
     def test_init(self):
         """Assert attributes are correctly set on init"""
         self.assertIsInstance(self.client.client, AMClient)
-        self.assertEqual(self.client.client.am_api_key, self.am_api_key)
-        self.assertEqual(self.client.client.am_user_name, self.am_user_name)
-        self.assertEqual(self.client.client.am_url, self.am_url)
-        self.assertEqual(self.client.client.transfer_source, self.transfer_source)
-        self.assertEqual(self.client.client.processing_config, self.processing_config)
+        self.assertEqual(self.client.client.am_api_key, self.args[0])
+        self.assertEqual(self.client.client.am_user_name, self.args[1])
+        self.assertEqual(self.client.client.am_url, self.args[2])
+        self.assertEqual(self.client.client.transfer_source, self.args[3])
+        self.assertEqual(self.client.client.processing_config, self.args[4])
         self.assertIsInstance(self.client.field_names, list)
         self.assertEqual(len(self.client.field_names), 18)
 
     @patch('amclient.AMClient.get_processing_config')
-    def test_add_processing_config(self, mock_processing_config):
-        mock_processing_config.return_value = "<processingMCP><preconfiguredChoices></preconfiguredChoices></processingMCP>"
-        self.client.add_processing_config(self.tmp_path / 'aurora_example')
-        self.assertTrue((self.tmp_path / 'aurora_example' / 'processingMCP.xml').is_file())
+    def test_get_processing_config(self, mock_processing_config):
+        file_content = "<processingMCP><preconfiguredChoices></preconfiguredChoices></processingMCP>"
+        mock_processing_config.return_value = file_content
+        output = self.client.get_processing_config()
+        self.assertEqual(output, file_content)
 
         mock_processing_config.return_value = 1
         with self.assertRaises(Exception):

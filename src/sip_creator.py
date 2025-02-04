@@ -113,7 +113,11 @@ class SIPMaker(object):
             am_client.add_rights_csv(
                 extracted_path,
                 package_data['rights_statements'])
-        am_client.add_processing_config(extracted_path)
+
+        processing_config = am_client.get_processing_config()
+        with open(extracted_path / 'processingMCP.xml', 'w') as f:
+            f.write(processing_config)
+
         bag = bagit.Bag(extracted_path)
         bag.info['Internal-Sender-Identifier'] = self.package_id
         bag.save(manifests=True)
