@@ -13,7 +13,7 @@ from .clients import ArchivematicaClient, AWSClient, ZodiacClient
 # TODO specify args and returns in docstrings
 
 
-class SIPMaker(object):
+class SIPCreator(object):
 
     def __init__(self, environment, aws_region, package_id, src_dir, tmp_dir, dest_dir, zodiac_baseurl, zodiac_api_key, sns_role_arn, sns_topic, ssm_role_arn):
         self.aws_region = aws_region
@@ -216,4 +216,4 @@ class SIPMaker(object):
 
 if __name__ == '__main__':
     # TODO get env variables, pass as args
-    SIPMaker().run()
+    SIPCreator().run()

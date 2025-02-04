@@ -81,7 +81,6 @@ class ArchivematicaClientTests(TestCase):
         output = self.client.get_rights_data(
             ["data/objects/sample.txt"],
             json_data["bag_data"]["rights_statements"])
-        print(output)
         self.assertEqual(len(output), 1)
         self.assertEqual(output[0], rights_row)
 

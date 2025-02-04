@@ -4,7 +4,8 @@ from aws_assume_role_lib import assume_role
 from requests import Session
 from requests.exceptions import HTTPError
 
-# TODO improve docstrings
+# TODO improve docstrings with args and returns
+# TODO return dict from rights
 
 
 class ArchivematicaClient():

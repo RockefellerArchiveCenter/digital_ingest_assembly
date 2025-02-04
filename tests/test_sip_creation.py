@@ -4,18 +4,18 @@ from unittest.mock import patch
 
 from moto import mock_aws
 
-from src.sip_creator import SIPMaker
+from src.sip_creator import SIPCreator
 
 
-class SIPMakerTests(TestCase):
+class SIPCreatorTests(TestCase):
 
     @mock_aws
     def setUp(self):
         self.args = ['dev', 'us-east-1', 'package_id', 'src', 'tme', 'dest', 'https://zodiac.rockarch.org/api', '1a2b3c4d5e6f7g8h9i',
                      'arn:aws:iam::123456789012:role/digital-ingest-sns-role', 'topic', 'arn:aws:iam::123456789012:role/digital-ingest-ssm-role']
-        self.sip_creator = SIPMaker(*self.args)
+        self.sip_creator = SIPCreator(*self.args)
 
-    @patch('src.sip_creator.SIPMaker.get_config')
+    @patch('src.sip_creator.SIPCreator.get_config')
     def test_init(self, mock_config):
         config = {}
         mock_config.return_value = config
@@ -32,17 +32,17 @@ class SIPMakerTests(TestCase):
         self.assertEqual(self.sip_creator.ssm_role_arn, self.args[10])
         self.assertEqual(self.sip_creator.config, config)
 
-    @patch('src.sip_creator.SIPMaker.send_failure_message')
-    @patch('src.sip_creator.SIPMaker.cleanup_failed')
-    @patch('src.sip_creator.SIPMaker.send_success_message')
-    @patch('src.sip_creator.SIPMaker.cleanup_successful')
-    @patch('src.sip_creator.SIPMaker.move_to_destination')
-    @patch('src.sip_creator.SIPMaker.archive')
-    @patch('src.sip_creator.SIPMaker.add_data')
-    @patch('src.sip_creator.SIPMaker.restructure')
-    @patch('src.sip_creator.SIPMaker.validate')
-    @patch('src.sip_creator.SIPMaker.extract')
-    @patch('src.sip_creator.SIPMaker.get_package_data')
+    @patch('src.sip_creator.SIPCreator.send_failure_message')
+    @patch('src.sip_creator.SIPCreator.cleanup_failed')
+    @patch('src.sip_creator.SIPCreator.send_success_message')
+    @patch('src.sip_creator.SIPCreator.cleanup_successful')
+    @patch('src.sip_creator.SIPCreator.move_to_destination')
+    @patch('src.sip_creator.SIPCreator.archive')
+    @patch('src.sip_creator.SIPCreator.add_data')
+    @patch('src.sip_creator.SIPCreator.restructure')
+    @patch('src.sip_creator.SIPCreator.validate')
+    @patch('src.sip_creator.SIPCreator.extract')
+    @patch('src.sip_creator.SIPCreator.get_package_data')
     def test_run(
             self,
             mock_get_package,
@@ -82,10 +82,16 @@ class SIPMakerTests(TestCase):
         mock_cleanup_failed.assert_called_once()
         mock_failure_message.assert_called_once_with(exception)
 
-    def test_get_package_data(self):
-        # mock client and methods
-        # check called_with
-        pass
+    @patch('src.clients.ZodiacClient.__init__')
+    @patch('src.clients.ZodiacClient.get_package_data')
+    def test_get_package_data(self, mock_data, mock_init):
+        mock_init.return_value = None
+        data = {}
+        mock_data.return_value = data
+
+        self.sip_creator.get_package_data()
+        mock_init.assert_called_once_with(self.args[6], self.args[7])
+        mock_data.assert_called_once_with(self.args[2])
 
     def test_extract(self):
         # set up binaries
