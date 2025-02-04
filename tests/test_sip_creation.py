@@ -1,5 +1,5 @@
 from pathlib import Path
-from shutil import copy
+from shutil import copy, rmtree
 from unittest import TestCase
 from unittest.mock import patch
 
@@ -12,7 +12,7 @@ class SIPCreatorTests(TestCase):
 
     @mock_aws
     def setUp(self):
-        self.args = ['dev', 'us-east-1', '0edb4066-980c-491f-bd73-c80a6546ff6d', 'src', 'tmp', 'dest', 'https://zodiac.rockarch.org/api', '1a2b3c4d5e6f7g8h9i',
+        self.args = ['dev', 'us-east-1', '0edb4066-980c-491f-bd73-c80a6546ff6d', 'source_dir', 'temp_dir', 'dest_dir', 'https://zodiac.rockarch.org/api', '1a2b3c4d5e6f7g8h9i',
                      'arn:aws:iam::123456789012:role/digital-ingest-sns-role', 'topic', 'arn:aws:iam::123456789012:role/digital-ingest-ssm-role']
         self.sip_creator = SIPCreator(*self.args)
         self.fixture_path = Path('tests', 'fixtures')
@@ -99,6 +99,7 @@ class SIPCreatorTests(TestCase):
 
     def test_extract(self):
         """Asserts extract results in expected files and dirs."""
+        Path(self.args[3]).mkdir()
         fixture_path = self.fixture_path / 'bags' / f'{self.args[2]}.tar.gz'
         src_path = Path(self.args[3], f'{self.args[2]}.tar.gz')
         copy(fixture_path, src_path)
@@ -109,9 +110,16 @@ class SIPCreatorTests(TestCase):
         self.assertTrue(src_path.is_file())
 
     def test_restructuring(self):
-        # assert new dirs
-        # Assert objects moved
-        pass
+        """Assert package is restructured correctly."""
+        package_path = Path(self.args[3], self.args[2])
+        (package_path / 'data').mkdir(parents=True)
+        (package_path / 'data' / 'example.txt').touch()
+
+        self.sip_creator.restructure(package_path)
+
+        for dir in ['objects', 'logs', 'metadata', 'metadata/submissionDocumentation']:
+            self.assertTrue((package_path / 'data' / dir).is_dir())
+        self.assertTrue((package_path / 'data' / 'objects' / 'example.txt').is_file())
 
     def test_add_data(self):
         # mock client calls, assert called_with
@@ -137,3 +145,7 @@ class SIPCreatorTests(TestCase):
         # assert destination removed
         # assert temp files (packaged and unpackged) removed
         pass
+
+    def tearDown(self):
+        if Path(self.args[3]).is_dir():
+            rmtree(self.args[3])
