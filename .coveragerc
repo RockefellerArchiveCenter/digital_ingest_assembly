@@ -5,6 +5,6 @@ omit =
 
 
 [report]
-omit =
+omit =  
         *test_*
         *__init__.py

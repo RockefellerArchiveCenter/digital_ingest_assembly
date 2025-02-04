@@ -5,6 +5,7 @@ RUN pip install -r requirements.txt
 COPY src src
 
 FROM base AS test
+COPY .coveragerc ./
 COPY tests tests
 RUN pip install -r tests/test_requirements.txt 
 
