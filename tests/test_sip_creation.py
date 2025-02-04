@@ -1,4 +1,5 @@
 from pathlib import Path
+from shutil import copy
 from unittest import TestCase
 from unittest.mock import patch
 
@@ -11,9 +12,10 @@ class SIPCreatorTests(TestCase):
 
     @mock_aws
     def setUp(self):
-        self.args = ['dev', 'us-east-1', 'package_id', 'src', 'tme', 'dest', 'https://zodiac.rockarch.org/api', '1a2b3c4d5e6f7g8h9i',
+        self.args = ['dev', 'us-east-1', '0edb4066-980c-491f-bd73-c80a6546ff6d', 'src', 'tmp', 'dest', 'https://zodiac.rockarch.org/api', '1a2b3c4d5e6f7g8h9i',
                      'arn:aws:iam::123456789012:role/digital-ingest-sns-role', 'topic', 'arn:aws:iam::123456789012:role/digital-ingest-ssm-role']
         self.sip_creator = SIPCreator(*self.args)
+        self.fixture_path = Path('tests', 'fixtures')
 
     @patch('src.sip_creator.SIPCreator.get_config')
     def test_init(self, mock_config):
@@ -56,6 +58,7 @@ class SIPCreatorTests(TestCase):
             mock_success_message,
             mock_cleanup_failed,
             mock_failure_message):
+        """Assert that all methods are called with correct args."""
         extracted_path = Path("foo")
         packaged_path = Path("bar")
         package_data = {}
@@ -85,6 +88,7 @@ class SIPCreatorTests(TestCase):
     @patch('src.clients.ZodiacClient.__init__')
     @patch('src.clients.ZodiacClient.get_package_data')
     def test_get_package_data(self, mock_data, mock_init):
+        """Asserts that package data is fetched with correct args."""
         mock_init.return_value = None
         data = {}
         mock_data.return_value = data
@@ -94,10 +98,15 @@ class SIPCreatorTests(TestCase):
         mock_data.assert_called_once_with(self.args[2])
 
     def test_extract(self):
-        # set up binaries
-        # assert unpacked
-        # assert packed still exists
-        pass
+        """Asserts extract results in expected files and dirs."""
+        fixture_path = self.fixture_path / 'bags' / f'{self.args[2]}.tar.gz'
+        src_path = Path(self.args[3], f'{self.args[2]}.tar.gz')
+        copy(fixture_path, src_path)
+
+        self.sip_creator.extract()
+
+        self.assertTrue(Path(self.args[4], self.args[2]).is_dir())
+        self.assertTrue(src_path.is_file())
 
     def test_restructuring(self):
         # assert new dirs
@@ -106,6 +115,7 @@ class SIPCreatorTests(TestCase):
 
     def test_add_data(self):
         # mock client calls, assert called_with
+        # Set up binaries
         # Assert bag-info
         pass
 
