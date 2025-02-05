@@ -3,6 +3,7 @@
 *.pickle
 archivematica_transfer_source/*
 .coverage
+.tox
 
 ### Django ###
 *.log
