@@ -8,9 +8,7 @@ import bagit
 
 from .clients import ArchivematicaClient, AWSClient, ZodiacClient
 
-# TODO consider things that need to be triggered on a cron (start package, clean up dashboard) - what's the best path forward?
 # TODO implement logging
-# TODO specify args and returns in docstrings
 
 
 class SIPCreator(object):
@@ -76,24 +74,40 @@ class SIPCreator(object):
             return configuration
 
     def get_package_data(self):
-        """Fetches data from Zodiac API."""
+        """Fetches data from Zodiac API.
+
+        Returns:
+            dict: package data from Zodiac API
+        """
         zodiac_client = ZodiacClient(self.zodiac_baseurl, self.zodiac_api_key)
         return zodiac_client.get_package_data(self.package_id)
 
     def extract(self):
-        """Extracts compressed TAR file to temporary directory."""
+        """Extracts compressed TAR file to temporary directory.
+
+        Returns:
+            pathlib.Path: path to extracted package
+        """
         current_path = Path(self.src_dir, f"{self.package_id}.tar.gz")
         with tarfile.open(current_path, "r:*") as tf:
             tf.extractall(self.tmp_dir)
         return Path(self.tmp_dir, self.package_id)
 
     def validate(self, extracted_path):
-        """Validates package against BagIt specification."""
+        """Validates package against BagIt specification.
+
+        Args:
+            extracted_path (pathlib.Path): path to package
+        """
         bag = bagit.Bag(str(extracted_path))
         bag.validate()
 
     def restructure(self, extracted_path):
-        """Creates Archivematica-compliant directory structure"""
+        """Creates Archivematica-compliant directory structure
+
+        Args:
+            extracted_path (pathlib.Path): path to package
+        """
         data_path = Path(extracted_path, 'data')
         objects_path = data_path / 'objects'
         log_path = data_path / 'logs'
@@ -106,7 +120,12 @@ class SIPCreator(object):
                 f.rename(objects_path / f.name)
 
     def add_data(self, extracted_path, package_data):
-        """Adds rights CSV, processing config, and data to bag-info.txt"""
+        """Adds rights CSV, processing config, and data to bag-info.txt
+
+        Args:
+            extracted_path (pathlib.Path): path to package
+            package_data (dict): data about package
+        """
         am_client = ArchivematicaClient(package_data['origin'])  # TODO this is wrong, need to get all configs
 
         if package_data.get('rights_statements'):
@@ -136,7 +155,11 @@ class SIPCreator(object):
         bag.save(manifests=True)
 
     def archive(self, extracted_path):
-        """Creates a compressed TAR file from a package."""
+        """Creates a compressed TAR file from a package.
+
+        Args:
+            extracted_path (pathlib.Path): path to package
+        """
         tar_path = Path(self.dest_dir, f'{self.package_id}.tar.gz')
         with tarfile.open(tar_path, "w:gz", compresslevel=1) as tar:
             tar.add(extracted_path, arcname=extracted_path.name)
@@ -147,7 +170,11 @@ class SIPCreator(object):
         Path(self.src_dir, f"{self.package_id}.tar.gz").unlink()
 
     def send_success_message(self, package_data):
-        """Sends success message to SNS topic."""
+        """Sends success message to SNS topic.
+
+        Args:
+            package_data (dict): data about package
+        """
         client = AWSClient(self.sns_role_arn).get_client('sns', self.aws_region)
         client.publish(
             TopicArn=self.sns_topic,
@@ -180,7 +207,11 @@ class SIPCreator(object):
             rmtree(Path(self.tmp_dir, self.package_id))
 
     def send_failure_message(self, exception):
-        """Sends failure message to SNS topic"""
+        """Sends failure message to SNS topic.
+
+        Args:
+            exception (Exception): the error that was thrown.
+        """
         client = AWSClient(self.role_arn).get_client('sns', self.aws_region)
         tb = ''.join(traceback.format_exception(exception)[:-1])
         client.publish(
