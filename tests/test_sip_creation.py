@@ -1,8 +1,10 @@
+import tarfile
 from pathlib import Path
 from shutil import copy, rmtree
 from unittest import TestCase
 from unittest.mock import patch
 
+import bagit
 from moto import mock_aws
 
 from src.sip_creator import SIPCreator
@@ -16,7 +18,13 @@ class SIPCreatorTests(TestCase):
                      'arn:aws:iam::123456789012:role/digital-ingest-sns-role', 'topic', 'arn:aws:iam::123456789012:role/digital-ingest-ssm-role']
         self.sip_creator = SIPCreator(*self.args)
         self.fixture_path = Path('tests', 'fixtures')
+        self.package_id = '0edb4066-980c-491f-bd73-c80a6546ff6d'
         # TODO setup dirs
+
+    def copy_extracted(self, target_path):
+        current_path = Path(self.fixture_path, 'bags', f"{self.package_id}.tar.gz")
+        with tarfile.open(current_path, "r:*") as tf:
+            tf.extractall(target_path)
 
     @patch('src.sip_creator.SIPCreator.get_config')
     def test_init(self, mock_config):
@@ -109,6 +117,7 @@ class SIPCreatorTests(TestCase):
 
     def test_restructuring(self):
         """Assert package is restructured correctly."""
+        # TODO move binary
         package_path = Path(self.args[3], self.args[2])
         (package_path / 'data').mkdir(parents=True)
         (package_path / 'data' / 'example.txt').touch()
@@ -119,14 +128,34 @@ class SIPCreatorTests(TestCase):
             self.assertTrue((package_path / 'data' / dir).is_dir())
         self.assertTrue((package_path / 'data' / 'objects' / 'example.txt').is_file())
 
-    def test_add_data(self):
-        # mock client calls, assert called_with
-        # Set up binaries
-        # Assert bag-info
-        pass
+    @patch('src.clients.ArchivematicaClient.__init__')
+    @patch('src.clients.ArchivematicaClient.get_rights_data')
+    @patch('src.clients.ArchivematicaClient.get_processing_config')
+    @patch('src.clients.ArchivematicaClient.validate_rights_csv')
+    def test_add_data(self, mock_validate, mock_processing_config, mock_data, mock_init):
+        mock_init.return_value = None
+        mock_data.return_value = [['foo', 'bar', 'baz'], ['biz', 'baz', 'buz']]
+        mock_processing_config.return_value = "<processingMCP><preconfiguredChoices></preconfiguredChoices></processingMCP>"
+        mock_validate.return_value = {"valid": "true"}
+        # TODO move binary instead of all this
+        package_path = Path(self.args[4], self.package_id)
+        self.copy_extracted(self.args[4])
+        (package_path / 'data' / 'objects').mkdir()
+        (package_path / 'data' / 'objects' / 'example.txt').touch()
+        package_data = {"origin": "aurora", "rights_statements": [{"foo": "bar"}]}
+
+        self.sip_creator.add_data(package_path, package_data)
+
+        mock_init.assert_called_once_with("aurora")
+        mock_data.assert_called_once_with(['data/objects/example.txt'], [{"foo": "bar"}])
+        self.assertTrue((package_path / 'data' / 'metadata' / 'rights.csv').is_file())
+        self.assertTrue((package_path / 'processingMCP.xml').is_file())
+        bag = bagit.Bag(str(package_path))
+        self.assertEqual(bag.info['Internal-Sender-Identifier'], self.args[2])
 
     def test_archive(self):
         """Asserts package is archived to correct location"""
+        #  TODO move binary
         package_path = Path(self.args[3], self.args[2])
         package_path.mkdir(parents=True)
         Path(self.args[5]).mkdir()
@@ -164,3 +193,5 @@ class SIPCreatorTests(TestCase):
         # TODO cleanup dirs
         if Path(self.args[3]).is_dir():
             rmtree(self.args[3])
+        if Path(self.args[4]).is_dir():
+            rmtree(self.args[4])

@@ -107,7 +107,7 @@ class SIPCreator(object):
 
     def add_data(self, extracted_path, package_data):
         """Adds rights CSV, processing config, and data to bag-info.txt"""
-        am_client = ArchivematicaClient(package_data['origin'])
+        am_client = ArchivematicaClient(package_data['origin'])  # TODO this is wrong, need to get all configs
 
         if package_data.get('rights_statements'):
             rights_csv_field_names = [
@@ -125,13 +125,13 @@ class SIPCreator(object):
                 csvwriter = csv.writer(csvfile)
                 csvwriter.writerow(rights_csv_field_names)
                 csvwriter.writerows(rights_data)
-            self.validate_rights_csv(csvfile)
+            am_client.validate_rights_csv(csvfile)
 
         processing_config = am_client.get_processing_config()
         with open(extracted_path / 'processingMCP.xml', 'w') as f:
             f.write(processing_config)
 
-        bag = bagit.Bag(extracted_path)
+        bag = bagit.Bag(str(extracted_path))
         bag.info['Internal-Sender-Identifier'] = self.package_id
         bag.save(manifests=True)
 
