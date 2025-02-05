@@ -35,10 +35,10 @@ class SIPCreatorTests(TestCase):
         config = {}
         mock_config.return_value = config
         self.assertEqual(self.sip_creator.aws_region, self.args[1])
-        self.assertEqual(self.sip_creator.package_id, self.args[2])
-        self.assertEqual(self.sip_creator.tmp_dir, self.args[4])
-        self.assertEqual(self.sip_creator.src_dir, self.args[3])
-        self.assertEqual(self.sip_creator.dest_dir, self.args[5])
+        self.assertEqual(self.sip_creator.package_id, self.package_id)
+        self.assertEqual(self.sip_creator.tmp_dir, self.tmp_dir)
+        self.assertEqual(self.sip_creator.src_dir, self.src_dir)
+        self.assertEqual(self.sip_creator.dest_dir, self.dest_dir)
         self.assertEqual(self.sip_creator.service_name, "fornax")
         self.assertEqual(self.sip_creator.zodiac_baseurl, self.args[6])
         self.assertEqual(self.sip_creator.zodiac_api_key, self.args[7])
@@ -105,31 +105,29 @@ class SIPCreatorTests(TestCase):
 
         self.sip_creator.get_package_data()
         mock_init.assert_called_once_with(self.args[6], self.args[7])
-        mock_data.assert_called_once_with(self.args[2])
+        mock_data.assert_called_once_with(self.package_id)
 
     def test_extract(self):
         """Asserts extract results in expected files and dirs."""
-        fixture_path = self.fixture_path / 'bags' / f'{self.args[2]}.tar.gz'
-        src_path = Path(self.args[3], f'{self.args[2]}.tar.gz')
+        fixture_path = self.fixture_path / 'bags' / f'{self.package_id}.tar.gz'
+        src_path = Path(self.src_dir, f'{self.package_id}.tar.gz')
         copy(fixture_path, src_path)
 
         self.sip_creator.extract()
 
-        self.assertTrue(Path(self.args[4], self.args[2]).is_dir())
+        self.assertTrue(Path(self.tmp_dir, self.package_id).is_dir())
         self.assertTrue(src_path.is_file())
 
     def test_restructuring(self):
         """Assert package is restructured correctly."""
-        # TODO move binary
-        package_path = Path(self.args[3], self.args[2])
-        (package_path / 'data').mkdir(parents=True)
-        (package_path / 'data' / 'example.txt').touch()
+        self.copy_extracted(self.src_dir)
+        package_path = Path(self.src_dir, self.package_id)
 
         self.sip_creator.restructure(package_path)
 
         for dir in ['objects', 'logs', 'metadata', 'metadata/submissionDocumentation']:
             self.assertTrue((package_path / 'data' / dir).is_dir())
-        self.assertTrue((package_path / 'data' / 'objects' / 'example.txt').is_file())
+        self.assertTrue((package_path / 'data' / 'objects' / 'metadata.json').is_file())
 
     @patch('src.clients.ArchivematicaClient.__init__')
     @patch('src.clients.ArchivematicaClient.get_rights_data')
@@ -140,9 +138,8 @@ class SIPCreatorTests(TestCase):
         mock_data.return_value = [['foo', 'bar', 'baz'], ['biz', 'baz', 'buz']]
         mock_processing_config.return_value = "<processingMCP><preconfiguredChoices></preconfiguredChoices></processingMCP>"
         mock_validate.return_value = {"valid": "true"}
-        # TODO move binary instead of all this
-        package_path = Path(self.args[4], self.package_id)
-        self.copy_extracted(self.args[4])
+        package_path = Path(self.tmp_dir, self.package_id)
+        self.copy_extracted(self.tmp_dir)
         (package_path / 'data' / 'objects').mkdir()
         (package_path / 'data' / 'objects' / 'example.txt').touch()
         package_data = {"origin": "aurora", "rights_statements": [{"foo": "bar"}]}
@@ -154,22 +151,21 @@ class SIPCreatorTests(TestCase):
         self.assertTrue((package_path / 'data' / 'metadata' / 'rights.csv').is_file())
         self.assertTrue((package_path / 'processingMCP.xml').is_file())
         bag = bagit.Bag(str(package_path))
-        self.assertEqual(bag.info['Internal-Sender-Identifier'], self.args[2])
+        self.assertEqual(bag.info['Internal-Sender-Identifier'], self.package_id)
 
     def test_archive(self):
         """Asserts package is archived to correct location"""
-        #  TODO move binary
-        package_path = Path(self.args[3], self.args[2])
-        package_path.mkdir(parents=True)
+        package_path = Path(self.tmp_dir, self.package_id)
+        self.copy_extracted(self.tmp_dir)
 
         self.sip_creator.archive(package_path)
 
-        self.assertTrue(Path(self.args[5], f'{self.args[2]}.tar.gz').is_file())
+        self.assertTrue(Path(self.dest_dir, f'{self.package_id}.tar.gz').is_file())
         self.assertFalse(package_path.exists())
 
     def test_cleanup_successful(self):
         """Asserts package is cleaned up after success."""
-        source_path = Path(self.args[3], f"{self.args[2]}.tar.gz")
+        source_path = Path(self.src_dir, f"{self.package_id}.tar.gz")
         source_path.touch()
 
         self.sip_creator.cleanup_successful()
@@ -177,17 +173,18 @@ class SIPCreatorTests(TestCase):
         self.assertFalse(source_path.exists())
 
     def test_cleanup_failed(self):
-        package_name = f"{self.args[2]}.tar.gz"
-        Path(self.args[4], self.args[2]).mkdir(parents=True)
-        Path(self.args[4], package_name).touch()
-        Path(self.args[5], package_name).touch()
+        """Asserts package is cleaned up after failure"""
+        package_name = f"{self.package_id}.tar.gz"
+        Path(self.tmp_dir, self.package_id).mkdir(parents=True)
+        Path(self.tmp_dir, package_name).touch()
+        Path(self.dest_dir, package_name).touch()
 
         self.sip_creator.cleanup_failed()
 
         for path in [
-                Path(self.args[4], package_name),
-                Path(self.args[5], package_name),
-                Path(self.args[4], self.args[2])]:
+                Path(self.tmp_dir, package_name),
+                Path(self.dest_dir, package_name),
+                Path(self.tmp_dir, self.package_id)]:
             self.assertFalse(path.exists())
 
     def tearDown(self):
