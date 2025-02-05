@@ -17,7 +17,18 @@ logging.basicConfig(
 
 class SIPCreator(object):
 
-    def __init__(self, environment, aws_region, package_id, src_dir, tmp_dir, dest_dir, zodiac_baseurl, zodiac_api_key, sns_role_arn, sns_topic, ssm_role_arn):
+    def __init__(self,
+                 environment,
+                 aws_region,
+                 package_id,
+                 src_dir,
+                 tmp_dir,
+                 dest_dir,
+                 zodiac_baseurl,
+                 zodiac_api_key,
+                 sns_role_arn,
+                 sns_topic,
+                 ssm_role_arn):
         self.aws_region = aws_region
         self.package_id = package_id
         self.tmp_dir = tmp_dir
@@ -264,5 +275,27 @@ class SIPCreator(object):
 
 
 if __name__ == '__main__':
-    # TODO get env variables, pass as args
-    SIPCreator().run()
+    environment = getenv('ENVIRONMENT')
+    aws_region = getenv('AWS_REGION')
+    package_id = getenv('PACKAGE_ID')
+    src_dir = getenv('SRC_DIR')
+    tmp_dir = getenv('TMP_DIR')
+    dest_dir = getenv('DEST_DIR')
+    zodiac_baseurl = getenv('ZODIAC_BASEURL')
+    zodiac_api_key = getenv('ZODIAC_API_KEY')
+    sns_role_arn = getenv('SNS_ROLE_ARN')
+    sns_topic = getenv('SNS_TOPIC')
+    ssm_role_arn = getenv('SSM_ROLE_ARN')
+    SIPCreator(
+        environment,
+        aws_region,
+        package_id,
+        src_dir,
+        tmp_dir,
+        dest_dir,
+        zodiac_baseurl,
+        zodiac_api_key,
+        sns_role_arn,
+        sns_topic,
+        ssm_role_arn
+    ).run()
