@@ -143,10 +143,22 @@ class SIPCreatorTests(TestCase):
         (package_path / 'data' / 'objects').mkdir()
         (package_path / 'data' / 'objects' / 'example.txt').touch()
         package_data = {"origin": "aurora", "rights_statements": [{"foo": "bar"}]}
+        self.sip_creator.config = {
+            "AURORA_AM_API_KEY": "api key",
+            "AURORA_AM_USER_NAME": "user name",
+            "AURORA_AM_URL": "url",
+            "AURORA_TRANSFER_SOURCE": "transfer source",
+            "AURORA_PROCESSING_CONFIG": "processing config"
+        }
 
         self.sip_creator.add_data(package_path, package_data)
 
-        mock_init.assert_called_once_with("aurora")
+        mock_init.assert_called_once_with(
+            am_api_key='api key',
+            am_user_name='user name',
+            am_url='url',
+            transfer_source='transfer source',
+            processing_config='processing config')
         mock_data.assert_called_once_with(['data/objects/example.txt'], [{"foo": "bar"}])
         self.assertTrue((package_path / 'data' / 'metadata' / 'rights.csv').is_file())
         self.assertTrue((package_path / 'processingMCP.xml').is_file())

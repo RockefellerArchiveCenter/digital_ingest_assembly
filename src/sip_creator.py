@@ -138,7 +138,13 @@ class SIPCreator(object):
             extracted_path (pathlib.Path): path to package
             package_data (dict): data about package
         """
-        am_client = ArchivematicaClient(package_data['origin'])  # TODO this is wrong, need to get all configs
+        origin = package_data['origin'].upper()
+        am_client = ArchivematicaClient(
+            am_api_key=self.config[f'{origin}_AM_API_KEY'],
+            am_user_name=self.config[f'{origin}_AM_USER_NAME'],
+            am_url=self.config[f'{origin}_AM_URL'],
+            transfer_source=self.config[f'{origin}_TRANSFER_SOURCE'],
+            processing_config=self.config[f'{origin}_PROCESSING_CONFIG'])
 
         if package_data.get('rights_statements'):
             rights_csv_field_names = [
