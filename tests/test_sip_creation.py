@@ -14,12 +14,16 @@ class SIPCreatorTests(TestCase):
 
     @mock_aws
     def setUp(self):
-        self.args = ['dev', 'us-east-1', '0edb4066-980c-491f-bd73-c80a6546ff6d', 'source_dir', 'temp_dir', 'dest_dir', 'https://zodiac.rockarch.org/api', '1a2b3c4d5e6f7g8h9i',
-                     'arn:aws:iam::123456789012:role/digital-ingest-sns-role', 'topic', 'arn:aws:iam::123456789012:role/digital-ingest-ssm-role']
-        self.sip_creator = SIPCreator(*self.args)
         self.fixture_path = Path('tests', 'fixtures')
         self.package_id = '0edb4066-980c-491f-bd73-c80a6546ff6d'
-        # TODO setup dirs
+        self.src_dir = 'source_dir'
+        self.tmp_dir = 'temp_dir'
+        self.dest_dir = 'dest_dir'
+        self.args = ['dev', 'us-east-1', self.package_id, self.src_dir, self.tmp_dir, self.dest_dir, 'https://zodiac.rockarch.org/api', '1a2b3c4d5e6f7g8h9i',
+                     'arn:aws:iam::123456789012:role/digital-ingest-sns-role', 'topic', 'arn:aws:iam::123456789012:role/digital-ingest-ssm-role']
+        self.sip_creator = SIPCreator(*self.args)
+        for dir in [self.src_dir, self.tmp_dir, self.dest_dir]:
+            Path(dir).mkdir()
 
     def copy_extracted(self, target_path):
         current_path = Path(self.fixture_path, 'bags', f"{self.package_id}.tar.gz")
@@ -105,7 +109,6 @@ class SIPCreatorTests(TestCase):
 
     def test_extract(self):
         """Asserts extract results in expected files and dirs."""
-        Path(self.args[3]).mkdir()
         fixture_path = self.fixture_path / 'bags' / f'{self.args[2]}.tar.gz'
         src_path = Path(self.args[3], f'{self.args[2]}.tar.gz')
         copy(fixture_path, src_path)
@@ -158,7 +161,6 @@ class SIPCreatorTests(TestCase):
         #  TODO move binary
         package_path = Path(self.args[3], self.args[2])
         package_path.mkdir(parents=True)
-        Path(self.args[5]).mkdir()
 
         self.sip_creator.archive(package_path)
 
@@ -167,7 +169,6 @@ class SIPCreatorTests(TestCase):
 
     def test_cleanup_successful(self):
         """Asserts package is cleaned up after success."""
-        Path(self.args[3]).mkdir()
         source_path = Path(self.args[3], f"{self.args[2]}.tar.gz")
         source_path.touch()
 
@@ -190,8 +191,5 @@ class SIPCreatorTests(TestCase):
             self.assertFalse(path.exists())
 
     def tearDown(self):
-        # TODO cleanup dirs
-        if Path(self.args[3]).is_dir():
-            rmtree(self.args[3])
-        if Path(self.args[4]).is_dir():
-            rmtree(self.args[4])
+        for dir in [self.src_dir, self.tmp_dir, self.dest_dir]:
+            rmtree(dir)
