@@ -165,7 +165,7 @@ class ArchivematicaClientTests(TestCase):
         self.assertEqual(output[1], expected_row)
 
     def test_get_basis_fields(self):
-        expected_row = ['copyright', 'public domain', '2021-08-02', 'us', '2031-06-12', None, '', '', 'Copyright term has expired.', '', '', '']
+        expected_row = ['copyright', 'public domain', '2021-08-02', 'us', '2031-06-12', None, None, None, 'Copyright term has expired.', None, None, None]
 
         for rights_statement in [
                 {

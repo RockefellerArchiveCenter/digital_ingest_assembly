@@ -10,8 +10,6 @@ from requests.exceptions import HTTPError
 
 class ArchivematicaClient():
 
-    # TODO convert None values to strings
-
     def __init__(self, am_api_key, am_user_name, am_url, transfer_source, processing_config):
         """Instantiates an Archivematica client based on SIP origin"""
         self.client = AMClient(
@@ -50,7 +48,7 @@ class ArchivematicaClient():
                 for basis_value in self.get_basis_fields(rights_statement):
                     rights_row.append(basis_value)
                 rights_row[10:10] = rights_granted_row
-                rights_rows.append(rights_row)
+                rights_rows.append(["" if c is None else c for c in rights_row])
         return rights_rows
 
     def get_basis_fields(self, rights_statement):
@@ -70,7 +68,7 @@ class ArchivematicaClient():
             'rights_basis', 'determination_date', 'jurisdiction', 'start_date',
             'end_date', 'terms', 'citation', 'doc_id_type', 'doc_id_value',
             'doc_id_role']
-        basis_values = [rights_statement.get(field, "") for field in basis_fields]
+        basis_values = [rights_statement.get(field) for field in basis_fields]
         basis_values.insert(7, basis_note)
         basis_values.insert(1, copyright_status)
         return basis_values
@@ -88,8 +86,8 @@ class ArchivematicaClient():
         for rights_granted in rights_granted_list:
             grant_restriction = rights_granted.get('restriction') if rights_granted.get('restriction') else rights_granted.get('grant_restriction')
             granted_note = rights_granted.get('granted_note') if rights_granted.get('granted_note') else rights_granted.get('note')
-            rows.append([rights_granted['act'], grant_restriction, rights_granted.get('start_date', ''),
-                         rights_granted.get('end_date', ''), granted_note])
+            rows.append([rights_granted['act'], grant_restriction, rights_granted.get('start_date'),
+                         rights_granted.get('end_date'), granted_note])
         return rows
 
     def validate_rights_csv(self, csvfile):
