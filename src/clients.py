@@ -4,8 +4,6 @@ from aws_assume_role_lib import assume_role
 from requests import Session
 from requests.exceptions import HTTPError
 
-# TODO return dict from rights
-
 
 class ArchivematicaClient():
 
@@ -62,18 +60,15 @@ class ArchivematicaClient():
             rights_statements (list of dicts): rights statement data from Zodiac API
 
         Returns:
-            list of lists: rights rows as a list, with None values replaced by empty strings
+            list of dicts: rights rows as a list, with None values replaced by empty strings
         """
         rights_rows = []
         for rights_statement in rights_statements:
             rights_granted_rows = self.get_grant_restriction_rows(rights_statement['rights_granted'])
-            for rights_granted_row in rights_granted_rows:
-                rights_row = []
-                rights_row.append(file_string)
-                for basis_value in self.get_basis_fields(rights_statement):
-                    rights_row.append(basis_value)
-                rights_row[10:10] = rights_granted_row
-                rights_rows.append(["" if c is None else c for c in rights_row])
+            for row in rights_granted_rows:
+                row['file'] = file_string
+                row.update(self.get_basis_fields(rights_statement))
+                rights_rows.append({key: value if value is not None else '' for key, value in row.items()})
         return rights_rows
 
     def get_basis_fields(self, rights_statement):
@@ -84,21 +79,28 @@ class ArchivematicaClient():
             rights_statement (dict): Single rights statement from Zodiac API
 
         Returns:
-            list: rights basis fields.
+            dict: rights basis fields.
         """
-        copyright_status = ''
+        copyright_status = None
         if rights_statement.get('status'):
             copyright_status = rights_statement.get('status')
         elif rights_statement.get('copyright_status'):
             copyright_status = rights_statement.get('copyright_status')
         basis_note = rights_statement.get('basis_note') if rights_statement.get('basis_note') else rights_statement.get('note')
-        basis_fields = [
-            'rights_basis', 'determination_date', 'jurisdiction', 'start_date',
-            'end_date', 'terms', 'citation', 'doc_id_type', 'doc_id_value',
-            'doc_id_role']
-        basis_values = [rights_statement.get(field) for field in basis_fields]
-        basis_values.insert(7, basis_note)
-        basis_values.insert(1, copyright_status)
+        basis_values = {
+            'basis': rights_statement.get('rights_basis'),
+            'status': copyright_status,
+            'determination_date': rights_statement.get('determination_date'),
+            'jurisdiction': rights_statement.get('jurisdiction'),
+            'start_date': rights_statement.get('start_date'),
+            'end_date': rights_statement.get('end_date'),
+            'terms': rights_statement.get('terms'),
+            'citation': rights_statement.get('citation'),
+            'note': basis_note,
+            'doc_id_type': rights_statement.get('doc_id_type'),
+            'doc_id_value': rights_statement.get('doc_id_value'),
+            'doc_id_role': rights_statement.get('doc_id_role'),
+        }
         return basis_values
 
     def get_grant_restriction_rows(self, rights_granted_list):
@@ -112,16 +114,23 @@ class ArchivematicaClient():
             rights_granted_list (list of dicts): Rights granted from a rights statement in Zodiac API
 
         Returns:
-            list: grant restriction fields
+            list of dicts: grant restriction fields
         """
         if not len(rights_granted_list):
-            return [[''] * 5]
+            return [{
+                'grant_act': None,
+                'grant_restriction': None,
+                'grant_start_date': None,
+                'grant_end_date': None,
+                'grant_note': None}]
         rows = []
         for rights_granted in rights_granted_list:
-            grant_restriction = rights_granted.get('restriction') if rights_granted.get('restriction') else rights_granted.get('grant_restriction')
-            granted_note = rights_granted.get('granted_note') if rights_granted.get('granted_note') else rights_granted.get('note')
-            rows.append([rights_granted['act'], grant_restriction, rights_granted.get('start_date'),
-                         rights_granted.get('end_date'), granted_note])
+            rows.append({
+                'grant_act': rights_granted['act'],
+                'grant_restriction': rights_granted.get('restriction', rights_granted.get('grant_restriction')),
+                'grant_start_date': rights_granted.get('start_date'),
+                'grant_end_date': rights_granted.get('end_date'),
+                'grant_note': rights_granted.get('granted_note', rights_granted.get('note'))})
         return rows
 
     def validate_rights_csv(self, csvfile):

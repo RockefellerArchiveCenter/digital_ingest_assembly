@@ -87,59 +87,52 @@ class ArchivematicaClientTests(TestCase):
     @patch('src.clients.ArchivematicaClient.get_grant_restriction_rows')
     @patch('src.clients.ArchivematicaClient.get_basis_fields')
     def test_get_rights_rows(self, mock_basis, mock_grant):
-        mock_basis.return_value = ['rights_basis', 'status', 'determination_date', 'jurisdiction', 'start_date',
-                                   'end_date', 'terms', 'citation', 'note', 'doc_id_type', 'doc_id_value',
-                                   'doc_id_role']
-        mock_grant.return_value = [
-            ['publish', 'disallow', '2020-01-01', '', 'granted note'],
-            ['disseminate', 'allow', '2020-01-01', '', 'granted note']
+        mock_basis.return_value = {
+            'basis': 'copyright',
+            'status': 'public domain',
+            'determination_date': '2021-08-02',
+            'jurisdiction': 'us',
+            'start_date': '2031-06-12',
+            'end_date': None,
+            'terms': None,
+            'citation': None,
+            'note': 'Copyright term has expired.',
+            'doc_id_type': None,
+            'doc_id_value': None,
+            'doc_id_role': None}
+        mock_grant.return_value = [{
+            'grant_act': 'publish',
+            'grant_restriction': 'disallow',
+            'grant_start_date': '1911-06-12',
+            'grant_end_date': None,
+            'grant_note': None},
+            {
+            'grant_act': 'disseminate',
+            'grant_restriction': 'allow',
+            'grant_start_date': '1911-06-12',
+            'grant_end_date': None,
+            'grant_note': None}
         ]
         with open(self.fixture_path / 'rights_statements.json') as df:
             rights_statements = json.load(df)
             output = self.client.get_rights_rows("data/objects/foo.txt", rights_statements)
             self.assertEqual(len(output), 4)
-            self.assertEqual(output[0],
-                             ['data/objects/foo.txt',
-                              'rights_basis',
-                              'status',
-                              'determination_date',
-                              'jurisdiction',
-                              'start_date',
-                              'end_date',
-                              'terms',
-                              'citation',
-                              'note',
-                              'publish',
-                              'disallow',
-                              '2020-01-01',
-                              '',
-                              'granted note',
-                              'doc_id_type',
-                              'doc_id_value',
-                              'doc_id_role'])
-            self.assertEqual(output[1],
-                             ['data/objects/foo.txt',
-                              'rights_basis',
-                              'status',
-                              'determination_date',
-                              'jurisdiction',
-                              'start_date',
-                              'end_date',
-                              'terms',
-                              'citation',
-                              'note',
-                              'disseminate',
-                              'allow',
-                              '2020-01-01',
-                              '',
-                              'granted note',
-                              'doc_id_type',
-                              'doc_id_value',
-                              'doc_id_role'])
+            self.assertEqual(
+                output[0],
+                {'grant_act': 'publish', 'grant_restriction': 'disallow', 'grant_start_date': '1911-06-12', 'grant_end_date': '', 'grant_note': '', 'file': 'data/objects/foo.txt', 'basis': 'copyright', 'status': 'public domain', 'determination_date': '2021-08-02', 'jurisdiction': 'us', 'start_date': '2031-06-12', 'end_date': '', 'terms': '', 'citation': '', 'note': 'Copyright term has expired.', 'doc_id_type': '', 'doc_id_value': '', 'doc_id_role': ''})
+            self.assertEqual(
+                output[1],
+                {'grant_act': 'disseminate', 'grant_restriction': 'allow', 'grant_start_date': '1911-06-12', 'grant_end_date': '', 'grant_note': '', 'file': 'data/objects/foo.txt', 'basis': 'copyright', 'status': 'public domain', 'determination_date': '2021-08-02', 'jurisdiction': 'us', 'start_date': '2031-06-12', 'end_date': '', 'terms': '', 'citation': '', 'note': 'Copyright term has expired.', 'doc_id_type': '', 'doc_id_value': '', 'doc_id_role': ''})
 
     def test_get_grant_restriction_note(self):
         output = self.client.get_grant_restriction_rows([])
-        self.assertEqual(output, [['', '', '', '', '']])
+        expected = [{
+            'grant_act': None,
+            'grant_restriction': None,
+            'grant_start_date': None,
+            'grant_end_date': None,
+            'grant_note': None}]
+        self.assertEqual(output, expected)
 
         grants_rows = [
             {
@@ -158,14 +151,31 @@ class ArchivematicaClientTests(TestCase):
             }
 
         ]
-        expected_row = ['publish', 'disallow', '1911-06-12', None, None]
+        expected_row = {
+            'grant_act': 'publish',
+            'grant_restriction': 'disallow',
+            'grant_start_date': '1911-06-12',
+            'grant_end_date': None,
+            'grant_note': None}
         output = self.client.get_grant_restriction_rows(grants_rows)
         self.assertEqual(len(output), 2)
         self.assertEqual(output[0], expected_row)
         self.assertEqual(output[1], expected_row)
 
     def test_get_basis_fields(self):
-        expected_row = ['copyright', 'public domain', '2021-08-02', 'us', '2031-06-12', None, None, None, 'Copyright term has expired.', None, None, None]
+        expected_row = {
+            'basis': 'copyright',
+            'status': 'public domain',
+            'determination_date': '2021-08-02',
+            'jurisdiction': 'us',
+            'start_date': '2031-06-12',
+            'end_date': None,
+            'terms': None,
+            'citation': None,
+            'note': 'Copyright term has expired.',
+            'doc_id_type': None,
+            'doc_id_value': None,
+            'doc_id_role': None}
 
         for rights_statement in [
                 {

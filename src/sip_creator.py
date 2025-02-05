@@ -159,9 +159,9 @@ class SIPCreator(object):
             csv_filepath = extracted_path / 'data' / 'metadata' / 'rights.csv'
             csv_filepath.parent.mkdir(exist_ok=True)
             with open(csv_filepath, 'w') as csvfile:
-                csvwriter = csv.writer(csvfile)
-                csvwriter.writerow(rights_csv_field_names)
-                csvwriter.writerows(rights_data)
+                dictwriter = csv.DictWriter(csvfile, fieldnames=rights_csv_field_names)
+                dictwriter.writeheader()
+                dictwriter.writerows(rights_data)
             am_client.validate_rights_csv(csvfile)
             logging.debug(f'Rights CSV added to package {self.package_id}')
 

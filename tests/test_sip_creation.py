@@ -135,7 +135,24 @@ class SIPCreatorTests(TestCase):
     @patch('src.clients.ArchivematicaClient.validate_rights_csv')
     def test_add_data(self, mock_validate, mock_processing_config, mock_data, mock_init):
         mock_init.return_value = None
-        mock_data.return_value = [['foo', 'bar', 'baz'], ['biz', 'baz', 'buz']]
+        mock_data.return_value = [{'grant_act': 'publish',
+                                   'grant_restriction': 'disallow',
+                                   'grant_start_date': '1911-06-12',
+                                   'grant_end_date': '',
+                                   'grant_note': '',
+                                   'file': 'data/objects/foo.txt',
+                                   'basis': 'copyright',
+                                   'status': 'public domain',
+                                   'determination_date': '2021-08-02',
+                                   'jurisdiction': 'us',
+                                   'start_date': '2031-06-12',
+                                   'end_date': '',
+                                   'terms': '',
+                                   'citation': '',
+                                   'note': 'Copyright term has expired.',
+                                   'doc_id_type': '',
+                                   'doc_id_value': '',
+                                   'doc_id_role': ''}]
         mock_processing_config.return_value = "<processingMCP><preconfiguredChoices></preconfiguredChoices></processingMCP>"
         mock_validate.return_value = {"valid": "true"}
         package_path = Path(self.tmp_dir, self.package_id)
