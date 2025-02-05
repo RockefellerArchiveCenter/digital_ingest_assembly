@@ -41,6 +41,9 @@ jobs:
       - name: Run pip-compile
         run: pip-compile --upgrade
 
+      - name: Update test requirements
+        run: pip-compile --upgrade tests/test_requirements.in -o tests/test_requirements.txt
+
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v6.0.2
         with:
