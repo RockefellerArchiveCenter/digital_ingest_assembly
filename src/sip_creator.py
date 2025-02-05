@@ -1,6 +1,8 @@
 import csv
+import logging
 import tarfile
 import traceback
+from os import getenv
 from pathlib import Path
 from shutil import rmtree
 
@@ -8,7 +10,9 @@ import bagit
 
 from .clients import ArchivematicaClient, AWSClient, ZodiacClient
 
-# TODO implement logging
+logging.basicConfig(
+    level=int(getenv('LOGGING_LEVEL', logging.INFO)),
+    format='%(filename)s::%(funcName)s::%(lineno)s %(message)s')
 
 
 class SIPCreator(object):
@@ -39,6 +43,8 @@ class SIPCreator(object):
             self.archive(extracted_path)
             self.cleanup_successful()
             self.send_success_message(package_data)
+            logging.info(
+                f'Package {self.package_id} prepared for Archivematica ingest.')
         except Exception as e:
             self.cleanup_failed()
             self.send_failure_message(e)
@@ -80,7 +86,9 @@ class SIPCreator(object):
             dict: package data from Zodiac API
         """
         zodiac_client = ZodiacClient(self.zodiac_baseurl, self.zodiac_api_key)
-        return zodiac_client.get_package_data(self.package_id)
+        data = zodiac_client.get_package_data(self.package_id)
+        logging.debug(f'Data for {self.package_id} fetched: {data}')
+        return data
 
     def extract(self):
         """Extracts compressed TAR file to temporary directory.
@@ -89,9 +97,11 @@ class SIPCreator(object):
             pathlib.Path: path to extracted package
         """
         current_path = Path(self.src_dir, f"{self.package_id}.tar.gz")
+        unpacked_path = Path(self.tmp_dir, self.package_id)
         with tarfile.open(current_path, "r:*") as tf:
             tf.extractall(self.tmp_dir)
-        return Path(self.tmp_dir, self.package_id)
+        logging.debug(f'Package {self.package_id} unpacked to {unpacked_path}')
+        return unpacked_path
 
     def validate(self, extracted_path):
         """Validates package against BagIt specification.
@@ -101,6 +111,7 @@ class SIPCreator(object):
         """
         bag = bagit.Bag(str(extracted_path))
         bag.validate()
+        logging.debug(f'Package {self.package_id} is a valid bag')
 
     def restructure(self, extracted_path):
         """Creates Archivematica-compliant directory structure
@@ -118,6 +129,7 @@ class SIPCreator(object):
         for f in data_path.iterdir():
             if f.is_file():
                 f.rename(objects_path / f.name)
+        logging.debug(f'Package {self.package_id} restructured')
 
     def add_data(self, extracted_path, package_data):
         """Adds rights CSV, processing config, and data to bag-info.txt
@@ -145,14 +157,17 @@ class SIPCreator(object):
                 csvwriter.writerow(rights_csv_field_names)
                 csvwriter.writerows(rights_data)
             am_client.validate_rights_csv(csvfile)
+            logging.debug(f'Rights CSV added to package {self.package_id}')
 
         processing_config = am_client.get_processing_config()
         with open(extracted_path / 'processingMCP.xml', 'w') as f:
             f.write(processing_config)
+        logging.debug(f'Processing config added to package {self.package_id}')
 
         bag = bagit.Bag(str(extracted_path))
         bag.info['Internal-Sender-Identifier'] = self.package_id
         bag.save(manifests=True)
+        logging.debug(f'bag-info.txt for package {self.package_id} updated')
 
     def archive(self, extracted_path):
         """Creates a compressed TAR file from a package.
@@ -164,10 +179,12 @@ class SIPCreator(object):
         with tarfile.open(tar_path, "w:gz", compresslevel=1) as tar:
             tar.add(extracted_path, arcname=extracted_path.name)
         rmtree(extracted_path)
+        logging.debug(f'Archive file created for package {self.package_id} at {tar_path}')
 
     def cleanup_successful(self):
         """Removes file from source directory."""
         Path(self.src_dir, f"{self.package_id}.tar.gz").unlink()
+        logging.debug(f'Cleanup from sucessful job complete for {self.package_id}')
 
     def send_success_message(self, package_data):
         """Sends success message to SNS topic.
@@ -197,6 +214,7 @@ class SIPCreator(object):
                     'StringValue': package_data
                 }
             })
+        logging.debug(f'Success message sent for {self.package_id}')
 
     def cleanup_failed(self):
         """Removes temporary and destination files if they exist."""
@@ -205,6 +223,7 @@ class SIPCreator(object):
         Path(self.tmp_dir, package_name).unlink(missing_ok=True)
         if Path(self.tmp_dir, self.package_id).is_dir():
             rmtree(Path(self.tmp_dir, self.package_id))
+        logging.debug(f'Cleanup from failed job complete for {self.package_id}')
 
     def send_failure_message(self, exception):
         """Sends failure message to SNS topic.
@@ -235,6 +254,7 @@ class SIPCreator(object):
                     'StringValue': f'{str(exception)}\n\n<pre>{tb}</pre>',
                 }
             })
+        logging.debug(f'Failure message sent for {self.package_id}')
 
 
 if __name__ == '__main__':
