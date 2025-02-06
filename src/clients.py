@@ -164,10 +164,10 @@ class ZodiacClient(object):
             'Accept': 'application/json',
             'X-Api-Key': api_key
         })
-        self.baseurl = baseurl
+        self.baseurl = baseurl.rstrip('/')
 
     def get_package_data(self, package_id):
-        url = f'{self.baseurl.rstrip()}/packages/{package_id}'
+        url = f'{self.baseurl}/packages/{package_id}'
         try:
             resp = self.session.get(url)
             resp.raise_for_status()
