@@ -1,6 +1,5 @@
 amclient~=1.2
-aws_assume_role_lib
-asterism
-bagit
-boto3
-requests
+aws_assume_role_lib~=2.10
+bagit~=1.8
+boto3~=1.36
+requests~=2.32
