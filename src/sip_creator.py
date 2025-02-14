@@ -49,11 +49,11 @@ class SIPCreator(object):
             extracted_path = self.extract()
             self.validate(extracted_path)
             self.restructure(extracted_path)
-            self.add_data(extracted_path, package_data)
+            updated_package = self.add_data(extracted_path, package_data)
             self.validate(extracted_path)
             self.archive(extracted_path)
             self.cleanup_successful()
-            self.send_success_message(package_data)
+            self.send_success_message(updated_package)
             logging.info(
                 f'Package {self.package_id} prepared for Archivematica ingest.')
         except Exception as e:
@@ -148,6 +148,9 @@ class SIPCreator(object):
         Args:
             extracted_path (pathlib.Path): path to package
             package_data (dict): data about package
+
+        Returns:
+            dict: updated package data
         """
         origin = package_data['origin'].upper()
         am_client = ArchivematicaClient(
@@ -182,9 +185,12 @@ class SIPCreator(object):
         logging.debug(f'Processing config added to package {self.package_id}')
 
         bag = bagit.Bag(str(extracted_path))
-        bag.info['Internal-Sender-Identifier'] = self.package_id
+        archivesspace_uri = bag.info.get('ArchivesSpace-URI')
+        if archivesspace_uri:
+            package_data.setdefault('identifiers', {}).update({'archivesspace_archival_object': archivesspace_uri})
         bag.save(manifests=True)
         logging.debug(f'bag-info.txt for package {self.package_id} updated')
+        return package_data
 
     def archive(self, extracted_path):
         """Creates a compressed TAR file from a package.

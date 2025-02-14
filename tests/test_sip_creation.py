@@ -76,6 +76,7 @@ class SIPCreatorTests(TestCase):
         mock_extract.return_value = extracted_path
         mock_get_package.return_value = package_data
         mock_archive.return_value = packaged_path
+        mock_add_data.return_value = package_data
         self.sip_creator.run()
         mock_get_package.assert_called_once()
         mock_extract.assert_called_once()
@@ -160,6 +161,11 @@ class SIPCreatorTests(TestCase):
         (package_path / 'data' / 'objects').mkdir()
         (package_path / 'data' / 'objects' / 'example.txt').touch()
         package_data = {"origin": "aurora", "rights_statements": [{"foo": "bar"}]}
+        expected = {
+            'origin': 'aurora',
+            'rights_statements': [{'foo': 'bar'}],
+            'identifiers': {
+                'archivesspace_archival_object': '/repositories/2/archival_objects/1'}}
         self.sip_creator.config = {
             "AURORA_AM_API_KEY": "api key",
             "AURORA_AM_USER_NAME": "user name",
@@ -168,8 +174,9 @@ class SIPCreatorTests(TestCase):
             "AURORA_PROCESSING_CONFIG": "processing config"
         }
 
-        self.sip_creator.add_data(package_path, package_data)
+        output = self.sip_creator.add_data(package_path, package_data)
 
+        self.assertEqual(output, expected)
         mock_init.assert_called_once_with(
             am_api_key='api key',
             am_user_name='user name',
@@ -180,7 +187,7 @@ class SIPCreatorTests(TestCase):
         self.assertTrue((package_path / 'data' / 'metadata' / 'rights.csv').is_file())
         self.assertTrue((package_path / 'processingMCP.xml').is_file())
         bag = bagit.Bag(str(package_path))
-        self.assertEqual(bag.info['Internal-Sender-Identifier'], self.package_id)
+        self.assertTrue(bag.is_valid())
 
     def test_archive(self):
         """Asserts package is archived to correct location"""
