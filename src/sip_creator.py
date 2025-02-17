@@ -24,8 +24,6 @@ class SIPCreator(object):
                  src_dir,
                  tmp_dir,
                  dest_dir,
-                 zodiac_baseurl,
-                 zodiac_api_key,
                  sns_role_arn,
                  sns_topic,
                  ssm_role_arn):
@@ -35,8 +33,6 @@ class SIPCreator(object):
         self.src_dir = src_dir
         self.dest_dir = dest_dir
         self.service_name = "fornax"
-        self.zodiac_baseurl = zodiac_baseurl
-        self.zodiac_api_key = zodiac_api_key
         self.sns_role_arn = sns_role_arn
         self.sns_topic = sns_topic
         self.ssm_role_arn = ssm_role_arn
@@ -96,7 +92,7 @@ class SIPCreator(object):
         Returns:
             dict: package data from Zodiac API
         """
-        zodiac_client = ZodiacClient(self.zodiac_baseurl, self.zodiac_api_key)
+        zodiac_client = ZodiacClient(self.config['ZODIAC_BASEURL'], self.config['ZODIAC_API_KEY'])
         data = zodiac_client.get_package_data(self.package_id)
         logging.debug(f'Data for {self.package_id} fetched: {data}')
         return data
@@ -287,8 +283,8 @@ if __name__ == '__main__':
     src_dir = getenv('SRC_DIR')
     tmp_dir = getenv('TMP_DIR')
     dest_dir = getenv('DEST_DIR')
-    zodiac_baseurl = getenv('ZODIAC_BASEURL')
-    zodiac_api_key = getenv('ZODIAC_API_KEY')
+    zodiac_baseurl = getenv('ZODIAC_BASEURL')  # TODO move to config
+    zodiac_api_key = getenv('ZODIAC_API_KEY')  # TODO move to config
     sns_role_arn = getenv('SNS_ROLE_ARN')
     sns_topic = getenv('SNS_TOPIC')
     ssm_role_arn = getenv('SSM_ROLE_ARN')

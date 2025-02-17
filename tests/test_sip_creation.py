@@ -19,8 +19,9 @@ class SIPCreatorTests(TestCase):
         self.src_dir = 'source_dir'
         self.tmp_dir = 'temp_dir'
         self.dest_dir = 'dest_dir'
-        self.args = ['dev', 'us-east-1', self.package_id, self.src_dir, self.tmp_dir, self.dest_dir, 'https://zodiac.rockarch.org/api', '1a2b3c4d5e6f7g8h9i',
-                     'arn:aws:iam::123456789012:role/digital-ingest-sns-role', 'topic', 'arn:aws:iam::123456789012:role/digital-ingest-ssm-role']
+        self.args = ['dev', 'us-east-1', self.package_id, self.src_dir, self.tmp_dir, self.dest_dir,
+                     'arn:aws:iam::123456789012:role/digital-ingest-sns-role', 'topic',
+                     'arn:aws:iam::123456789012:role/digital-ingest-ssm-role']
         self.sip_creator = SIPCreator(*self.args)
         for dir in [self.src_dir, self.tmp_dir, self.dest_dir]:
             Path(dir).mkdir()
@@ -40,11 +41,9 @@ class SIPCreatorTests(TestCase):
         self.assertEqual(self.sip_creator.src_dir, self.src_dir)
         self.assertEqual(self.sip_creator.dest_dir, self.dest_dir)
         self.assertEqual(self.sip_creator.service_name, "fornax")
-        self.assertEqual(self.sip_creator.zodiac_baseurl, self.args[6])
-        self.assertEqual(self.sip_creator.zodiac_api_key, self.args[7])
-        self.assertEqual(self.sip_creator.sns_role_arn, self.args[8])
-        self.assertEqual(self.sip_creator.sns_topic, self.args[9])
-        self.assertEqual(self.sip_creator.ssm_role_arn, self.args[10])
+        self.assertEqual(self.sip_creator.sns_role_arn, self.args[6])
+        self.assertEqual(self.sip_creator.sns_topic, self.args[7])
+        self.assertEqual(self.sip_creator.ssm_role_arn, self.args[8])
         self.assertEqual(self.sip_creator.config, config)
 
     @patch('src.sip_creator.SIPCreator.send_failure_message')
@@ -103,9 +102,12 @@ class SIPCreatorTests(TestCase):
         mock_init.return_value = None
         data = {}
         mock_data.return_value = data
+        baseurl = "https://zodiac.rockarch.org"
+        api_key = "foo"
+        self.sip_creator.config = {"ZODIAC_BASEURL": baseurl, "ZODIAC_API_KEY": api_key}
 
         self.sip_creator.get_package_data()
-        mock_init.assert_called_once_with(self.args[6], self.args[7])
+        mock_init.assert_called_once_with(baseurl, api_key)
         mock_data.assert_called_once_with(self.package_id)
 
     def test_extract(self):
