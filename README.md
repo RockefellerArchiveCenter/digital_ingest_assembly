@@ -1,18 +1,16 @@
-# fornax
+# digital_ingest_assembly
 
 A microservice to create Archivematica-compliant Submission Information Packages (SIPs).
-
-fornax is part of [Project Electron](https://github.com/RockefellerArchiveCenter/project_electron), an initiative to build sustainable, open and user-centered infrastructure for the archival management of digital records at the [Rockefeller Archive Center](http://rockarch.org/).
 
 ## Getting Started
 
 If you have [git](https://git-scm.com/) and [Docker](https://store.docker.com/search?type=edition&offering=community) installed, using this repository is as simple as:
 
     
-    git clone https://github.com/RockefellerArchiveCenter/fornax.git
-    cd fornax
-    docker build -t fornax .
-    docker run fornax
+    git clone https://github.com/RockefellerArchiveCenter/digital_ingest_assembly.git
+    cd digital_ingest_assembly
+    docker build -t digital_ingest_assembly .
+    docker run digital_ingest_assembly
     
 
 ## Usage

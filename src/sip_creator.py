@@ -32,7 +32,7 @@ class SIPCreator(object):
         self.tmp_dir = tmp_dir
         self.src_dir = src_dir
         self.dest_dir = dest_dir
-        self.service_name = "fornax"
+        self.service_name = "digital_ingest_assembly"
         self.sns_role_arn = sns_role_arn
         self.sns_topic = sns_topic
         self.ssm_role_arn = ssm_role_arn
@@ -65,7 +65,7 @@ class SIPCreator(object):
         Returns:
             configuration (dict): all parameters found at the supplied path.
         """
-        ssm_parameter_path = f"/{environment}/fornax"
+        ssm_parameter_path = f"/{environment}/digital_ingest_assembly"
         configuration = {}
         ssm_client = AWSClient(self.ssm_role_arn).get_client('ssm', self.aws_region)
         try:

@@ -40,7 +40,7 @@ class SIPCreatorTests(TestCase):
         self.assertEqual(self.sip_creator.tmp_dir, self.tmp_dir)
         self.assertEqual(self.sip_creator.src_dir, self.src_dir)
         self.assertEqual(self.sip_creator.dest_dir, self.dest_dir)
-        self.assertEqual(self.sip_creator.service_name, "fornax")
+        self.assertEqual(self.sip_creator.service_name, "digital_ingest_assembly")
         self.assertEqual(self.sip_creator.sns_role_arn, self.args[6])
         self.assertEqual(self.sip_creator.sns_topic, self.args[7])
         self.assertEqual(self.sip_creator.ssm_role_arn, self.args[8])
