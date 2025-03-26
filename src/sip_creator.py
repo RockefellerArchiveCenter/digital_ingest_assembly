@@ -283,8 +283,6 @@ if __name__ == '__main__':
     src_dir = getenv('SRC_DIR')
     tmp_dir = getenv('TMP_DIR')
     dest_dir = getenv('DEST_DIR')
-    zodiac_baseurl = getenv('ZODIAC_BASEURL')  # TODO move to config
-    zodiac_api_key = getenv('ZODIAC_API_KEY')  # TODO move to config
     sns_role_arn = getenv('SNS_ROLE_ARN')
     sns_topic = getenv('SNS_TOPIC')
     ssm_role_arn = getenv('SSM_ROLE_ARN')
@@ -295,8 +293,6 @@ if __name__ == '__main__':
         src_dir,
         tmp_dir,
         dest_dir,
-        zodiac_baseurl,
-        zodiac_api_key,
         sns_role_arn,
         sns_topic,
         ssm_role_arn
