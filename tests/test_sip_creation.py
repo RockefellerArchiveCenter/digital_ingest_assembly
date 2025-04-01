@@ -103,11 +103,10 @@ class SIPCreatorTests(TestCase):
         data = {}
         mock_data.return_value = data
         baseurl = "https://zodiac.rockarch.org"
-        api_key = "foo"
-        self.sip_creator.config = {"ZODIAC_BASEURL": baseurl, "ZODIAC_API_KEY": api_key}
+        self.sip_creator.config = {"ZODIAC_BASEURL": baseurl}
 
         self.sip_creator.get_package_data()
-        mock_init.assert_called_once_with(baseurl, api_key)
+        mock_init.assert_called_once_with(baseurl)
         mock_data.assert_called_once_with(self.package_id)
 
     def test_extract(self):
