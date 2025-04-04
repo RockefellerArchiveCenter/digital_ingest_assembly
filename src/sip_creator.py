@@ -41,6 +41,7 @@ class SIPCreator(object):
     def run(self):
         """Main class method which calls other service logic."""
         try:
+            self.send_start_message()
             package_data = self.get_package_data()
             extracted_path = self.extract()
             self.validate(extracted_path)
@@ -85,6 +86,27 @@ class SIPCreator(object):
             traceback.print_exc()
         finally:
             return configuration
+
+    def send_start_message(self):
+        client = AWSClient(self.sns_role_arn).get_client('sns', self.aws_region)
+        client.publish(
+            TopicArn=self.sns_topic,
+            Message=f'Assembly for {self.package_id} started.',
+            MessageAttributes={
+                'package_id': {
+                    'DataType': 'String',
+                    'StringValue': self.package_id,
+                },
+                'service': {
+                    'DataType': 'String',
+                    'StringValue': self.service_name,
+                },
+                'outcome': {
+                    'DataType': 'String',
+                    'StringValue': 'STARTED',
+                }
+            })
+        logging.debug('Start notification delivered.')
 
     def get_package_data(self):
         """Fetches data from Zodiac API.
