@@ -56,8 +56,10 @@ class SIPCreatorTests(TestCase):
     @patch('src.sip_creator.SIPCreator.validate')
     @patch('src.sip_creator.SIPCreator.extract')
     @patch('src.sip_creator.SIPCreator.get_package_data')
+    @patch('src.sip_creator.SIPCreator.send_start_message')
     def test_run(
             self,
+            mock_start_message,
             mock_get_package,
             mock_extract,
             mock_validate,
@@ -76,7 +78,10 @@ class SIPCreatorTests(TestCase):
         mock_get_package.return_value = package_data
         mock_archive.return_value = packaged_path
         mock_add_data.return_value = package_data
+
         self.sip_creator.run()
+
+        mock_start_message.assert_called_once()
         mock_get_package.assert_called_once()
         mock_extract.assert_called_once()
         self.assertEqual(mock_validate.call_count, 2)
