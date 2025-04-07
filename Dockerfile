@@ -10,4 +10,4 @@ COPY tests tests
 RUN pip install -r tests/test_requirements.txt 
 
 FROM base AS build
-CMD ["python", "src/sip_creator.py"]
+CMD ["python", "-m", "src.sip_creator"]

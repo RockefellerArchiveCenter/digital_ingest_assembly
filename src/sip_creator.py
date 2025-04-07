@@ -8,7 +8,7 @@ from shutil import rmtree
 
 import bagit
 
-from .clients import ArchivematicaClient, AWSClient, ZodiacClient
+from src.clients import ArchivematicaClient, AWSClient, ZodiacClient
 
 logging.basicConfig(
     level=int(getenv('LOGGING_LEVEL', logging.INFO)),
