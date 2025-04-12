@@ -72,7 +72,6 @@ class SIPCreator(object):
         try:
             param_details = ssm_client.get_parameters_by_path(
                 Path=ssm_parameter_path,
-                MaxResults=50,
                 Recursive=False,
                 WithDecryption=True)
 
@@ -282,7 +281,7 @@ class SIPCreator(object):
         tb = ''.join(traceback.format_exception(exception)[:-1])
         client.publish(
             TopicArn=self.sns_topic,
-            Message=f'SIP creation for package {self.package_id} failed',
+            Message=tb,
             MessageAttributes={
                 'package_id': {
                     'DataType': 'String',
@@ -298,7 +297,7 @@ class SIPCreator(object):
                 },
                 'message': {
                     'DataType': 'String',
-                    'StringValue': f'{str(exception)}\n\n<pre>{tb}</pre>',
+                    'StringValue': str(exception),
                 }
             })
         logging.debug(f'Failure message sent for {self.package_id}')
