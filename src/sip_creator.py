@@ -107,7 +107,7 @@ class SIPCreator(object):
                 },
                 'message': {
                     'DataType': 'String',
-                    'StringValue': f'Assembly for {self.package_id} started.',                    
+                    'StringValue': f'Assembly for {self.package_id} started.',
                 }
             })
         logging.debug('Start notification delivered.')
