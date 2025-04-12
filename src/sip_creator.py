@@ -72,7 +72,6 @@ class SIPCreator(object):
         try:
             param_details = ssm_client.get_parameters_by_path(
                 Path=ssm_parameter_path,
-                MaxResults=50,
                 Recursive=False,
                 WithDecryption=True)
 
