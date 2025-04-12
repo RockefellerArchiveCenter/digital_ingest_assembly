@@ -104,6 +104,10 @@ class SIPCreator(object):
                 'outcome': {
                     'DataType': 'String',
                     'StringValue': 'STARTED',
+                },
+                'message': {
+                    'DataType': 'String',
+                    'StringValue': f'Assembly for {self.package_id} started.',                    
                 }
             })
         logging.debug('Start notification delivered.')
@@ -114,6 +118,7 @@ class SIPCreator(object):
         Returns:
             dict: package data from Zodiac API
         """
+        logging.info(self.config)
         zodiac_client = ZodiacClient(self.config['ZODIAC_BASEURL'])
         data = zodiac_client.get_package_data(self.package_id)
         logging.debug(f'Data for {self.package_id} fetched: {data}')
@@ -236,7 +241,7 @@ class SIPCreator(object):
         client = AWSClient(self.sns_role_arn).get_client('sns', self.aws_region)
         client.publish(
             TopicArn=self.sns_topic,
-            Message=f'SIP for package {self.package_id} successfully created',
+            Message=package_data,
             MessageAttributes={
                 'package_id': {
                     'DataType': 'String',
@@ -250,9 +255,9 @@ class SIPCreator(object):
                     'DataType': 'String',
                     'StringValue': 'SUCCESS',
                 },
-                'package_data': {
+                'message': {
                     'DataType': 'String',
-                    'StringValue': package_data
+                    'StringValue': f'SIP for package {self.package_id} successfully created'
                 }
             })
         logging.debug(f'Success message sent for {self.package_id}')
@@ -272,7 +277,7 @@ class SIPCreator(object):
         Args:
             exception (Exception): the error that was thrown.
         """
-        client = AWSClient(self.role_arn).get_client('sns', self.aws_region)
+        client = AWSClient(self.sns_role_arn).get_client('sns', self.aws_region)
         tb = ''.join(traceback.format_exception(exception)[:-1])
         client.publish(
             TopicArn=self.sns_topic,
