@@ -115,7 +115,6 @@ class SIPCreator(object):
         Returns:
             dict: package data from Zodiac API
         """
-        logging.info(self.config)
         zodiac_client = ZodiacClient(self.config['ZODIAC_BASEURL'])
         data = zodiac_client.get_package_data(self.package_id)
         logging.debug(f'Data for {self.package_id} fetched: {data}')
