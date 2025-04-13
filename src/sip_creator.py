@@ -70,17 +70,14 @@ class SIPCreator(object):
         configuration = {}
         ssm_client = AWSClient(self.ssm_role_arn).get_client('ssm', self.aws_region)
         try:
-            param_details = ssm_client.get_parameters_by_path(
-                Path=ssm_parameter_path,
-                Recursive=False,
-                WithDecryption=True)
-
-            for param in param_details.get('Parameters', []):
-                param_path_array = param.get('Name').split("/")
-                section_position = len(param_path_array) - 1
-                section_name = param_path_array[section_position]
-                configuration[section_name] = param.get('Value')
-
+            paginator = ssm_client.get_paginator('get_parameters_by_path')
+            response_iterator = paginator.paginate(Path=ssm_parameter_path)
+            for page in response_iterator:
+                for entry in page['Parameters']:
+                    param_path_array = entry.get('Name').split("/")
+                    section_position = len(param_path_array) - 1
+                    section_name = param_path_array[section_position]
+                    configuration[section_name] = entry.get('Value')
         except BaseException:
             print("Encountered an error loading config from SSM.")
             traceback.print_exc()
