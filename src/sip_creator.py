@@ -54,6 +54,7 @@ class SIPCreator(object):
             logging.info(
                 f'Package {self.package_id} prepared for Archivematica ingest.')
         except Exception as e:
+            logging.error(e)
             self.cleanup_failed()
             self.send_failure_message(e)
 
@@ -115,7 +116,6 @@ class SIPCreator(object):
         Returns:
             dict: package data from Zodiac API
         """
-        logging.info(self.config)
         zodiac_client = ZodiacClient(self.config['ZODIAC_BASEURL'])
         data = zodiac_client.get_package_data(self.package_id)
         logging.debug(f'Data for {self.package_id} fetched: {data}')
