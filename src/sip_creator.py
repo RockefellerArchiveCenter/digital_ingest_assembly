@@ -54,6 +54,7 @@ class SIPCreator(object):
             logging.info(
                 f'Package {self.package_id} prepared for Archivematica ingest.')
         except Exception as e:
+            logging.error(e)
             self.cleanup_failed()
             self.send_failure_message(e)
 
