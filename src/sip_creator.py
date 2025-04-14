@@ -196,6 +196,7 @@ class SIPCreator(object):
                 dictwriter = csv.DictWriter(csvfile, fieldnames=rights_csv_field_names)
                 dictwriter.writeheader()
                 dictwriter.writerows(rights_data)
+                csvfile.seek(0)
                 am_client.validate_rights_csv(csvfile)
             logging.debug(f'Rights CSV added to package {self.package_id}')
 
