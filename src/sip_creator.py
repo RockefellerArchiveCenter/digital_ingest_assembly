@@ -187,11 +187,13 @@ class SIPCreator(object):
                 'start_date', 'end_date', 'terms', 'citation', 'note', 'grant_act',
                 'grant_restriction', 'grant_start_date', 'grant_end_date',
                 'grant_note', 'doc_id_type', 'doc_id_value', 'doc_id_role']
+            for f in extracted_path.rglob("*"):
+                logging.info(f)
             file_names = [str(f).replace(str(extracted_path), '').lstrip('/') for f in (extracted_path / 'data' / 'objects').rglob('*')]
+            logging.info(file_names)
             rights_data = am_client.get_rights_data(
                 file_names,
                 package_data['rights_statements'])
-            logging.info(rights_data)
             csv_filepath = extracted_path / 'data' / 'metadata' / 'rights.csv'
             csv_filepath.parent.mkdir(exist_ok=True)
             with open(csv_filepath, 'w') as csvfile:
