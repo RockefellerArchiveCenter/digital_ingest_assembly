@@ -160,7 +160,7 @@ class SIPCreator(object):
         docs_path = metadata_path / 'submissionDocumentation'
         for p in [objects_path, log_path, docs_path]:
             p.mkdir(parents=True)
-        for f in data_path.iterdir():
+        for f in data_path.rglob('*'):
             logging.info(f)
             if f.is_file():
                 f.rename(objects_path / f.name)
