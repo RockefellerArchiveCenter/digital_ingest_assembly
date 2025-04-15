@@ -81,7 +81,7 @@ class SIPCreator(object):
                     section_name = param_path_array[section_position]
                     configuration[section_name] = entry.get('Value')
         except BaseException:
-            print("Encountered an error loading config from SSM.")
+            logging.error("Encountered an error loading config from SSM.")
             traceback.print_exc()
         finally:
             return configuration
@@ -153,15 +153,12 @@ class SIPCreator(object):
         """
         data_path = extracted_path / 'data'
         objects_path = data_path / 'objects'
-        logging.info(data_path)
-        logging.info(extracted_path)
         log_path = data_path / 'logs'
         metadata_path = data_path / 'metadata'
         docs_path = metadata_path / 'submissionDocumentation'
         for p in [objects_path, log_path, docs_path]:
             p.mkdir(parents=True)
         for f in data_path.rglob('*'):
-            logging.info(f)
             if f.is_file():
                 f.rename(objects_path / f.name)
         logging.debug(f'Package {self.package_id} restructured')
@@ -190,10 +187,7 @@ class SIPCreator(object):
                 'start_date', 'end_date', 'terms', 'citation', 'note', 'grant_act',
                 'grant_restriction', 'grant_start_date', 'grant_end_date',
                 'grant_note', 'doc_id_type', 'doc_id_value', 'doc_id_role']
-            for f in extracted_path.rglob("*"):
-                logging.info(f)
             file_names = [str(f).replace(str(extracted_path), '').lstrip('/') for f in (extracted_path / 'data' / 'objects').rglob('*')]
-            logging.info(file_names)
             rights_data = am_client.get_rights_data(
                 file_names,
                 package_data['rights_statements'])
