@@ -90,7 +90,7 @@ class SIPCreatorTests(TestCase):
         self.assertEqual(mock_validate.call_count, 2)
         mock_validate.assert_called_with(extracted_path)
         mock_restructure.assert_called_once_with(extracted_path)
-        mock_add_data.assert_called_once_with(extracted_path, package_data)
+        mock_add_data.assert_called_once_with(extracted_path, package_data, "AURORA")
         mock_archive.assert_called_once_with(extracted_path)
         mock_move_transfer.assert_called_once_with(archived_path, "AURORA")
         mock_cleanup_successful.assert_called_once_with()
@@ -117,6 +117,14 @@ class SIPCreatorTests(TestCase):
         self.sip_creator.get_package_data()
         mock_init.assert_called_once_with(baseurl)
         mock_data.assert_called_once_with(self.package_id)
+
+    def test_format_origin(self):
+        for input, expected in [
+                ('aurora', 'AURORA'),
+                ('av digitization', 'AV_DIGITIZATION'),
+                ('legacy_digital', 'LEGACY_DIGITAL')]:
+            output = self.sip_creator.format_origin(input)
+            self.assertEqual(output, expected)
 
     def test_extract(self):
         """Asserts extract results in expected files and dirs."""
@@ -184,7 +192,7 @@ class SIPCreatorTests(TestCase):
             "AURORA_PROCESSING_CONFIG": "processing config"
         }
 
-        output = self.sip_creator.add_data(package_path, package_data)
+        output = self.sip_creator.add_data(package_path, package_data, 'AURORA')
 
         self.assertEqual(output, expected)
         mock_init.assert_called_once_with(

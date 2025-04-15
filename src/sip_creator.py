@@ -44,13 +44,14 @@ class SIPCreator(object):
         try:
             self.send_start_message()
             package_data = self.get_package_data()
+            formatted_origin = self.format_origin(package_data['origin'])
             extracted_path = self.extract()
             self.validate(extracted_path)
             self.restructure(extracted_path)
-            updated_package = self.add_data(extracted_path, package_data)
+            updated_package = self.add_data(extracted_path, package_data, formatted_origin)
             self.validate(extracted_path)
             archived_path = self.archive(extracted_path)
-            self.move_to_transfer_source(archived_path, package_data['origin'].upper())
+            self.move_to_transfer_source(archived_path, formatted_origin)
             self.cleanup_successful()
             self.send_success_message(updated_package)
             logging.info(
@@ -123,6 +124,10 @@ class SIPCreator(object):
         logging.debug(f'Data for {self.package_id} fetched: {data}')
         return data
 
+    def format_origin(self, raw_origin):
+        """Formats origin for use in appending to config keys."""
+        return raw_origin.replace(' ', '_').upper()
+
     def extract(self):
         """Extracts compressed TAR file to temporary directory.
 
@@ -164,7 +169,7 @@ class SIPCreator(object):
                 f.rename(objects_path / f.name)
         logging.debug(f'Package {self.package_id} restructured')
 
-    def add_data(self, extracted_path, package_data):
+    def add_data(self, extracted_path, package_data, origin):
         """Adds rights CSV, processing config, and data to bag-info.txt
 
         Args:
@@ -174,7 +179,6 @@ class SIPCreator(object):
         Returns:
             dict: updated package data
         """
-        origin = package_data['origin'].upper()
         am_client = ArchivematicaClient(
             am_api_key=self.config[f'{origin}_AM_API_KEY'],
             am_user_name=self.config[f'{origin}_AM_USER_NAME'],
