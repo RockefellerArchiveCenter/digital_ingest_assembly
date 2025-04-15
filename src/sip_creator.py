@@ -13,6 +13,7 @@ from src.clients import ArchivematicaClient, AWSClient, ZodiacClient
 logging.basicConfig(
     level=int(getenv('LOGGING_LEVEL', logging.INFO)),
     format='%(filename)s::%(funcName)s::%(lineno)s %(message)s')
+logging.getLogger("bagit").setLevel(logging.ERROR)
 
 
 class SIPCreator(object):
