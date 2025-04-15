@@ -22,7 +22,8 @@ class ArchivematicaClient():
             am_user_name=am_user_name,
             am_url=am_url,
             transfer_source=transfer_source,
-            processing_config=processing_config)
+            processing_config=processing_config,
+            enhanced_errors=True)
 
     def get_processing_config(self):
         """Adds a processing configuration file from Archivematica to a package.

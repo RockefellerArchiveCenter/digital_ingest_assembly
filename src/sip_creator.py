@@ -191,6 +191,7 @@ class SIPCreator(object):
             rights_data = am_client.get_rights_data(
                 file_names,
                 package_data['rights_statements'])
+            logging.info(rights_data)
             csv_filepath = extracted_path / 'data' / 'metadata' / 'rights.csv'
             csv_filepath.parent.mkdir(exist_ok=True)
             with open(csv_filepath, 'w') as csvfile:
