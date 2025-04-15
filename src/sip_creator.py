@@ -226,7 +226,7 @@ class SIPCreator(object):
         Args:
             extracted_path (pathlib.Path): path to package
         """
-        tar_path = Path(self.dest_dir, f'{self.package_id}.tar.gz')
+        tar_path = Path(self.tmp_dir, f'{self.package_id}.tar.gz')
         with tarfile.open(tar_path, "w:gz", compresslevel=1) as tar:
             tar.add(extracted_path, arcname=extracted_path.name)
         rmtree(extracted_path)
@@ -270,7 +270,6 @@ class SIPCreator(object):
     def cleanup_failed(self):
         """Removes temporary and destination files if they exist."""
         package_name = f"{self.package_id}.tar.gz"
-        Path(self.dest_dir, package_name).unlink(missing_ok=True)
         Path(self.tmp_dir, package_name).unlink(missing_ok=True)
         if Path(self.tmp_dir, self.package_id).is_dir():
             rmtree(Path(self.tmp_dir, self.package_id))

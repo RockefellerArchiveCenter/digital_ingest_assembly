@@ -202,7 +202,7 @@ class SIPCreatorTests(TestCase):
 
         self.sip_creator.archive(package_path)
 
-        self.assertTrue(Path(self.dest_dir, f'{self.package_id}.tar.gz').is_file())
+        self.assertTrue(Path(self.tmp_dir, f'{self.package_id}.tar.gz').is_file())
         self.assertFalse(package_path.exists())
 
     def test_cleanup_successful(self):
@@ -219,13 +219,11 @@ class SIPCreatorTests(TestCase):
         package_name = f"{self.package_id}.tar.gz"
         Path(self.tmp_dir, self.package_id).mkdir(parents=True)
         Path(self.tmp_dir, package_name).touch()
-        Path(self.dest_dir, package_name).touch()
 
         self.sip_creator.cleanup_failed()
 
         for path in [
                 Path(self.tmp_dir, package_name),
-                Path(self.dest_dir, package_name),
                 Path(self.tmp_dir, self.package_id)]:
             self.assertFalse(path.exists())
 
