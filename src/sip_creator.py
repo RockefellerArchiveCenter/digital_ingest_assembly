@@ -24,19 +24,19 @@ class SIPCreator(object):
                  package_id,
                  src_dir,
                  tmp_dir,
-                 dest_dir,
                  sns_role_arn,
                  sns_topic,
-                 ssm_role_arn):
+                 ssm_role_arn,
+                 s3_role_arn):
         self.aws_region = aws_region
         self.package_id = package_id
         self.tmp_dir = tmp_dir
         self.src_dir = src_dir
-        self.dest_dir = dest_dir
         self.service_name = "digital_ingest_assembly"
         self.sns_role_arn = sns_role_arn
         self.sns_topic = sns_topic
         self.ssm_role_arn = ssm_role_arn
+        self.s3_role_arn = s3_role_arn
         self.config = self.get_config(environment)
 
     def run(self):
@@ -49,7 +49,8 @@ class SIPCreator(object):
             self.restructure(extracted_path)
             updated_package = self.add_data(extracted_path, package_data)
             self.validate(extracted_path)
-            self.archive(extracted_path)
+            archived_path = self.archive(extracted_path)
+            self.move_to_transfer_source(archived_path, package_data['origin'].upper())
             self.cleanup_successful()
             self.send_success_message(updated_package)
             logging.info(
@@ -225,6 +226,26 @@ class SIPCreator(object):
             tar.add(extracted_path, arcname=extracted_path.name)
         rmtree(extracted_path)
         logging.debug(f'Archive file created for package {self.package_id} at {tar_path}')
+        return tar_path
+
+    def move_to_transfer_source(self, archived_path, origin):
+        """Moves archived package to Archivematica transfer source.
+
+        Args:
+            archived_path (pathlib.Path): path to archived packaged.
+            origin (str): uppercased representation of package origin.
+        """
+        bucket_name = self.config[f'{origin}_TRANSFER_SOURCE_BUCKET']
+        bucket_path = self.config.get(f'{origin}_TRANSFER_SOURCE_PATH')
+        destination_path = f'{bucket_path.rstrip("/")}/{archived_path.name}'.lstrip("/") if bucket_path else archived_path.name
+        s3_client = AWSClient(self.s3_role_arn).get_client('s3', self.aws_region)
+        s3_client.upload_file(
+            archived_path,
+            bucket_name,
+            destination_path,
+            ExtraArgs={'ContentType': 'application/gzip'})
+        archived_path.unlink()
+        logging.debug(f'Package {self.package_id} moved to transfer source {bucket_name} at path {bucket_path}')
 
     def cleanup_successful(self):
         """Removes file from source directory."""
@@ -307,18 +328,18 @@ if __name__ == '__main__':
     package_id = getenv('PACKAGE_ID')
     src_dir = getenv('SRC_DIR')
     tmp_dir = getenv('TMP_DIR')
-    dest_dir = getenv('DEST_DIR')
     sns_role_arn = getenv('SNS_ROLE_ARN')
     sns_topic = getenv('SNS_TOPIC')
     ssm_role_arn = getenv('SSM_ROLE_ARN')
+    s3_role_arn = getenv('S3_ROLE_ARN')
     SIPCreator(
         environment,
         aws_region,
         package_id,
         src_dir,
         tmp_dir,
-        dest_dir,
         sns_role_arn,
         sns_topic,
-        ssm_role_arn
+        ssm_role_arn,
+        s3_role_arn,
     ).run()
