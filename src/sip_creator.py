@@ -1,4 +1,5 @@
 import csv
+import json
 import logging
 import tarfile
 import traceback
@@ -265,7 +266,7 @@ class SIPCreator(object):
         client = AWSClient(self.sns_role_arn).get_client('sns', self.aws_region)
         client.publish(
             TopicArn=self.sns_topic,
-            Message=package_data,
+            Message=json.dumps(package_data, default=str),
             MessageAttributes={
                 'package_id': {
                     'DataType': 'String',
