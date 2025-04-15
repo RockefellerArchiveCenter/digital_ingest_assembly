@@ -49,7 +49,6 @@ class ArchivematicaClient():
         rights_data = []
         for file_string in file_path_strings:
             rights_rows = self.get_rights_rows(file_string, rights_statements)
-            print(rights_rows)
             for rights_row in rights_rows:
                 rights_data.append(rights_row)
         return rights_data
