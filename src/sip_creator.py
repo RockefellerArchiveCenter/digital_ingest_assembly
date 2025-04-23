@@ -94,6 +94,7 @@ class SIPCreator(object):
         client.publish(
             TopicArn=self.sns_topic,
             MessageGroupId=f'{self.service_name}-{self.package_id}',
+            MessageDeduplicationId=f'{self.service_name}-{self.package_id}-start',
             Message=f'Assembly for {self.package_id} started.',
             MessageAttributes={
                 'package_id': {
@@ -270,6 +271,7 @@ class SIPCreator(object):
         client.publish(
             TopicArn=self.sns_topic,
             MessageGroupId=f'{self.service_name}-{self.package_id}',
+            MessageDeduplicationId=f'{self.service_name}-{self.package_id}-success',
             Message=json.dumps(package_data, default=str),
             MessageAttributes={
                 'package_id': {
@@ -310,6 +312,7 @@ class SIPCreator(object):
         client.publish(
             TopicArn=self.sns_topic,
             MessageGroupId=f'{self.service_name}-{self.package_id}',
+            MessageDeduplicationId=f'{self.service_name}-{self.package_id}-failure',
             Message=tb,
             MessageAttributes={
                 'package_id': {
