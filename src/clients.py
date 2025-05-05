@@ -22,7 +22,8 @@ class ArchivematicaClient():
             am_user_name=am_user_name,
             am_url=am_url,
             transfer_source=transfer_source,
-            processing_config=processing_config)
+            processing_config=processing_config,
+            enhanced_errors=True)
 
     def get_processing_config(self):
         """Adds a processing configuration file from Archivematica to a package.
@@ -158,11 +159,10 @@ class AWSClient(object):
 
 class ZodiacClient(object):
 
-    def __init__(self, baseurl, api_key):
+    def __init__(self, baseurl):
         self.session = Session()
         self.session.headers.update({
             'Accept': 'application/json',
-            'X-Api-Key': api_key
         })
         self.baseurl = baseurl.rstrip('/')
 

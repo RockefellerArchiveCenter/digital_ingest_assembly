@@ -5,6 +5,7 @@ from unittest import TestCase
 from unittest.mock import patch
 
 import bagit
+import boto3
 from moto import mock_aws
 
 from src.sip_creator import SIPCreator
@@ -18,12 +19,12 @@ class SIPCreatorTests(TestCase):
         self.package_id = '0edb4066-980c-491f-bd73-c80a6546ff6d'
         self.src_dir = 'source_dir'
         self.tmp_dir = 'temp_dir'
-        self.dest_dir = 'dest_dir'
-        self.args = ['dev', 'us-east-1', self.package_id, self.src_dir, self.tmp_dir, self.dest_dir,
+        self.args = ['dev', 'us-east-1', self.package_id, self.src_dir, self.tmp_dir,
                      'arn:aws:iam::123456789012:role/digital-ingest-sns-role', 'topic',
-                     'arn:aws:iam::123456789012:role/digital-ingest-ssm-role']
+                     'arn:aws:iam::123456789012:role/digital-ingest-ssm-role',
+                     'arn:aws:iam::123456789012:role/digital-ingest-s3-role']
         self.sip_creator = SIPCreator(*self.args)
-        for dir in [self.src_dir, self.tmp_dir, self.dest_dir]:
+        for dir in [self.src_dir, self.tmp_dir]:
             Path(dir).mkdir()
 
     def copy_extracted(self, target_path):
@@ -39,51 +40,59 @@ class SIPCreatorTests(TestCase):
         self.assertEqual(self.sip_creator.package_id, self.package_id)
         self.assertEqual(self.sip_creator.tmp_dir, self.tmp_dir)
         self.assertEqual(self.sip_creator.src_dir, self.src_dir)
-        self.assertEqual(self.sip_creator.dest_dir, self.dest_dir)
         self.assertEqual(self.sip_creator.service_name, "digital_ingest_assembly")
-        self.assertEqual(self.sip_creator.sns_role_arn, self.args[6])
-        self.assertEqual(self.sip_creator.sns_topic, self.args[7])
-        self.assertEqual(self.sip_creator.ssm_role_arn, self.args[8])
+        self.assertEqual(self.sip_creator.sns_role_arn, self.args[5])
+        self.assertEqual(self.sip_creator.sns_topic, self.args[6])
+        self.assertEqual(self.sip_creator.ssm_role_arn, self.args[7])
+        self.assertEqual(self.sip_creator.s3_role_arn, self.args[8])
         self.assertEqual(self.sip_creator.config, config)
 
     @patch('src.sip_creator.SIPCreator.send_failure_message')
     @patch('src.sip_creator.SIPCreator.cleanup_failed')
     @patch('src.sip_creator.SIPCreator.send_success_message')
     @patch('src.sip_creator.SIPCreator.cleanup_successful')
+    @patch('src.sip_creator.SIPCreator.move_to_transfer_source')
     @patch('src.sip_creator.SIPCreator.archive')
     @patch('src.sip_creator.SIPCreator.add_data')
     @patch('src.sip_creator.SIPCreator.restructure')
     @patch('src.sip_creator.SIPCreator.validate')
     @patch('src.sip_creator.SIPCreator.extract')
     @patch('src.sip_creator.SIPCreator.get_package_data')
+    @patch('src.sip_creator.SIPCreator.send_start_message')
     def test_run(
             self,
+            mock_start_message,
             mock_get_package,
             mock_extract,
             mock_validate,
             mock_restructure,
             mock_add_data,
             mock_archive,
+            mock_move_transfer,
             mock_cleanup_successful,
             mock_success_message,
             mock_cleanup_failed,
             mock_failure_message):
         """Assert that all methods are called with correct args."""
         extracted_path = Path("foo")
-        packaged_path = Path("bar")
-        package_data = {}
+        archived_path = Path("bar")
+        package_data = {"origin": "aurora"}
         mock_extract.return_value = extracted_path
         mock_get_package.return_value = package_data
-        mock_archive.return_value = packaged_path
+        mock_archive.return_value = archived_path
         mock_add_data.return_value = package_data
+
         self.sip_creator.run()
+
+        mock_start_message.assert_called_once()
         mock_get_package.assert_called_once()
         mock_extract.assert_called_once()
         self.assertEqual(mock_validate.call_count, 2)
         mock_validate.assert_called_with(extracted_path)
         mock_restructure.assert_called_once_with(extracted_path)
-        mock_add_data.assert_called_once_with(extracted_path, package_data)
+        mock_add_data.assert_called_once_with(extracted_path, package_data, "AURORA")
         mock_archive.assert_called_once_with(extracted_path)
+        mock_move_transfer.assert_called_once_with(archived_path, "AURORA")
         mock_cleanup_successful.assert_called_once_with()
         mock_success_message.assert_called_once_with(package_data)
         mock_cleanup_failed.assert_not_called()
@@ -103,12 +112,19 @@ class SIPCreatorTests(TestCase):
         data = {}
         mock_data.return_value = data
         baseurl = "https://zodiac.rockarch.org"
-        api_key = "foo"
-        self.sip_creator.config = {"ZODIAC_BASEURL": baseurl, "ZODIAC_API_KEY": api_key}
+        self.sip_creator.config = {"ZODIAC_BASEURL": baseurl}
 
         self.sip_creator.get_package_data()
-        mock_init.assert_called_once_with(baseurl, api_key)
+        mock_init.assert_called_once_with(baseurl)
         mock_data.assert_called_once_with(self.package_id)
+
+    def test_format_origin(self):
+        for input, expected in [
+                ('aurora', 'AURORA'),
+                ('av digitization', 'AV_DIGITIZATION'),
+                ('legacy_digital', 'LEGACY_DIGITAL')]:
+            output = self.sip_creator.format_origin(input)
+            self.assertEqual(output, expected)
 
     def test_extract(self):
         """Asserts extract results in expected files and dirs."""
@@ -176,7 +192,7 @@ class SIPCreatorTests(TestCase):
             "AURORA_PROCESSING_CONFIG": "processing config"
         }
 
-        output = self.sip_creator.add_data(package_path, package_data)
+        output = self.sip_creator.add_data(package_path, package_data, 'AURORA')
 
         self.assertEqual(output, expected)
         mock_init.assert_called_once_with(
@@ -198,8 +214,32 @@ class SIPCreatorTests(TestCase):
 
         self.sip_creator.archive(package_path)
 
-        self.assertTrue(Path(self.dest_dir, f'{self.package_id}.tar.gz').is_file())
+        self.assertTrue(Path(self.tmp_dir, f'{self.package_id}.tar.gz').is_file())
         self.assertFalse(package_path.exists())
+
+    @mock_aws
+    @patch('src.sip_creator.SIPCreator.get_config')
+    def test_move_to_transfer_source(self, mock_config):
+        """Asserts package is moved to correct transfer source and path"""
+        package_name = f'{self.package_id}.tar.gz'
+        package_origin = 'AURORA'
+        bucket_name = 'transfer_source'
+        self.sip_creator.config[f'{package_origin}_TRANSFER_SOURCE_BUCKET'] = bucket_name
+        s3 = boto3.client('s3', region_name='us-east-1')
+        s3.create_bucket(Bucket=bucket_name)
+
+        for input_path, bucket_path in [("", package_name), ("/", package_name), ("aurora/", f'aurora/{package_name}')]:
+            fixture_path = self.fixture_path / 'bags' / package_name
+            tmp_path = Path(self.tmp_dir, package_name)
+            copy(fixture_path, tmp_path)
+            self.sip_creator.config[f'{package_origin}_TRANSFER_SOURCE_PATH'] = input_path
+
+            self.sip_creator.move_to_transfer_source(tmp_path, 'AURORA')
+
+            s3.head_object(Bucket=bucket_name, Key=bucket_path)
+            self.assertFalse(tmp_path.is_file())
+
+            s3.delete_object(Bucket=bucket_name, Key=bucket_path)
 
     def test_cleanup_successful(self):
         """Asserts package is cleaned up after success."""
@@ -215,16 +255,14 @@ class SIPCreatorTests(TestCase):
         package_name = f"{self.package_id}.tar.gz"
         Path(self.tmp_dir, self.package_id).mkdir(parents=True)
         Path(self.tmp_dir, package_name).touch()
-        Path(self.dest_dir, package_name).touch()
 
         self.sip_creator.cleanup_failed()
 
         for path in [
                 Path(self.tmp_dir, package_name),
-                Path(self.dest_dir, package_name),
                 Path(self.tmp_dir, self.package_id)]:
             self.assertFalse(path.exists())
 
     def tearDown(self):
-        for dir in [self.src_dir, self.tmp_dir, self.dest_dir]:
+        for dir in [self.src_dir, self.tmp_dir]:
             rmtree(dir)

@@ -244,13 +244,11 @@ class ZodiacClientTests(TestCase):
 
     def setUp(self):
         self.baseurl = 'https://example.com'
-        self.api_key = '123456789'
-        self.client = ZodiacClient(self.baseurl, self.api_key)
+        self.client = ZodiacClient(self.baseurl)
 
     def test_init(self):
         """Asserts attributes are correctly set on init"""
         self.assertIsInstance(self.client.session, RequestsSession)
-        self.assertEqual(self.client.session.headers.get('X-Api-Key'), self.api_key)
         self.assertEqual(self.client.session.headers.get('Accept'), 'application/json')
         self.assertEqual(self.client.baseurl, self.baseurl)
 

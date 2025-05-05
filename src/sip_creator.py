@@ -1,4 +1,5 @@
 import csv
+import json
 import logging
 import tarfile
 import traceback
@@ -8,11 +9,12 @@ from shutil import rmtree
 
 import bagit
 
-from .clients import ArchivematicaClient, AWSClient, ZodiacClient
+from src.clients import ArchivematicaClient, AWSClient, ZodiacClient
 
 logging.basicConfig(
     level=int(getenv('LOGGING_LEVEL', logging.INFO)),
     format='%(filename)s::%(funcName)s::%(lineno)s %(message)s')
+logging.getLogger("bagit").setLevel(logging.ERROR)
 
 
 class SIPCreator(object):
@@ -23,36 +25,40 @@ class SIPCreator(object):
                  package_id,
                  src_dir,
                  tmp_dir,
-                 dest_dir,
                  sns_role_arn,
                  sns_topic,
-                 ssm_role_arn):
+                 ssm_role_arn,
+                 s3_role_arn):
         self.aws_region = aws_region
         self.package_id = package_id
         self.tmp_dir = tmp_dir
         self.src_dir = src_dir
-        self.dest_dir = dest_dir
         self.service_name = "digital_ingest_assembly"
         self.sns_role_arn = sns_role_arn
         self.sns_topic = sns_topic
         self.ssm_role_arn = ssm_role_arn
+        self.s3_role_arn = s3_role_arn
         self.config = self.get_config(environment)
 
     def run(self):
         """Main class method which calls other service logic."""
         try:
+            self.send_start_message()
             package_data = self.get_package_data()
+            formatted_origin = self.format_origin(package_data['origin'])
             extracted_path = self.extract()
             self.validate(extracted_path)
             self.restructure(extracted_path)
-            updated_package = self.add_data(extracted_path, package_data)
+            updated_package = self.add_data(extracted_path, package_data, formatted_origin)
             self.validate(extracted_path)
-            self.archive(extracted_path)
+            archived_path = self.archive(extracted_path)
+            self.move_to_transfer_source(archived_path, formatted_origin)
             self.cleanup_successful()
             self.send_success_message(updated_package)
             logging.info(
                 f'Package {self.package_id} prepared for Archivematica ingest.')
         except Exception as e:
+            logging.error(e)
             self.cleanup_failed()
             self.send_failure_message(e)
 
@@ -69,22 +75,46 @@ class SIPCreator(object):
         configuration = {}
         ssm_client = AWSClient(self.ssm_role_arn).get_client('ssm', self.aws_region)
         try:
-            param_details = ssm_client.get_parameters_by_path(
-                Path=ssm_parameter_path,
-                Recursive=False,
-                WithDecryption=True)
-
-            for param in param_details.get('Parameters', []):
-                param_path_array = param.get('Name').split("/")
-                section_position = len(param_path_array) - 1
-                section_name = param_path_array[section_position]
-                configuration[section_name] = param.get('Value')
-
+            paginator = ssm_client.get_paginator('get_parameters_by_path')
+            response_iterator = paginator.paginate(Path=ssm_parameter_path)
+            for page in response_iterator:
+                for entry in page['Parameters']:
+                    param_path_array = entry.get('Name').split("/")
+                    section_position = len(param_path_array) - 1
+                    section_name = param_path_array[section_position]
+                    configuration[section_name] = entry.get('Value')
         except BaseException:
-            print("Encountered an error loading config from SSM.")
+            logging.error("Encountered an error loading config from SSM.")
             traceback.print_exc()
         finally:
             return configuration
+
+    def send_start_message(self):
+        client = AWSClient(self.sns_role_arn).get_client('sns', self.aws_region)
+        client.publish(
+            TopicArn=self.sns_topic,
+            MessageGroupId=f'{self.service_name}-{self.package_id}',
+            MessageDeduplicationId=f'{self.service_name}-{self.package_id}-start',
+            Message=f'Assembly for {self.package_id} started.',
+            MessageAttributes={
+                'package_id': {
+                    'DataType': 'String',
+                    'StringValue': self.package_id,
+                },
+                'service': {
+                    'DataType': 'String',
+                    'StringValue': self.service_name,
+                },
+                'outcome': {
+                    'DataType': 'String',
+                    'StringValue': 'STARTED',
+                },
+                'message': {
+                    'DataType': 'String',
+                    'StringValue': f'Assembly for {self.package_id} started.',
+                }
+            })
+        logging.debug('Start notification delivered.')
 
     def get_package_data(self):
         """Fetches data from Zodiac API.
@@ -92,10 +122,14 @@ class SIPCreator(object):
         Returns:
             dict: package data from Zodiac API
         """
-        zodiac_client = ZodiacClient(self.config['ZODIAC_BASEURL'], self.config['ZODIAC_API_KEY'])
+        zodiac_client = ZodiacClient(self.config['ZODIAC_BASEURL'])
         data = zodiac_client.get_package_data(self.package_id)
         logging.debug(f'Data for {self.package_id} fetched: {data}')
         return data
+
+    def format_origin(self, raw_origin):
+        """Formats origin for use in appending to config keys."""
+        return raw_origin.replace(' ', '_').upper()
 
     def extract(self):
         """Extracts compressed TAR file to temporary directory.
@@ -126,19 +160,19 @@ class SIPCreator(object):
         Args:
             extracted_path (pathlib.Path): path to package
         """
-        data_path = Path(extracted_path, 'data')
+        data_path = extracted_path / 'data'
         objects_path = data_path / 'objects'
         log_path = data_path / 'logs'
         metadata_path = data_path / 'metadata'
         docs_path = metadata_path / 'submissionDocumentation'
         for p in [objects_path, log_path, docs_path]:
             p.mkdir(parents=True)
-        for f in data_path.iterdir():
+        for f in data_path.rglob('*'):
             if f.is_file():
                 f.rename(objects_path / f.name)
         logging.debug(f'Package {self.package_id} restructured')
 
-    def add_data(self, extracted_path, package_data):
+    def add_data(self, extracted_path, package_data, origin):
         """Adds rights CSV, processing config, and data to bag-info.txt
 
         Args:
@@ -148,7 +182,6 @@ class SIPCreator(object):
         Returns:
             dict: updated package data
         """
-        origin = package_data['origin'].upper()
         am_client = ArchivematicaClient(
             am_api_key=self.config[f'{origin}_AM_API_KEY'],
             am_user_name=self.config[f'{origin}_AM_USER_NAME'],
@@ -172,7 +205,8 @@ class SIPCreator(object):
                 dictwriter = csv.DictWriter(csvfile, fieldnames=rights_csv_field_names)
                 dictwriter.writeheader()
                 dictwriter.writerows(rights_data)
-            am_client.validate_rights_csv(csvfile)
+            with open(csv_filepath, 'r') as csvfile:
+                am_client.validate_rights_csv(csvfile)
             logging.debug(f'Rights CSV added to package {self.package_id}')
 
         processing_config = am_client.get_processing_config()
@@ -183,7 +217,9 @@ class SIPCreator(object):
         bag = bagit.Bag(str(extracted_path))
         archivesspace_uri = bag.info.get('ArchivesSpace-URI')
         if archivesspace_uri:
-            package_data.setdefault('identifiers', {}).update({'archivesspace_archival_object': archivesspace_uri})
+            if not package_data.get('identifiers'):
+                package_data['identifiers'] = {}
+            package_data['identifiers'].update({'archivesspace_archival_object': archivesspace_uri})
         bag.save(manifests=True)
         logging.debug(f'bag-info.txt for package {self.package_id} updated')
         return package_data
@@ -194,11 +230,31 @@ class SIPCreator(object):
         Args:
             extracted_path (pathlib.Path): path to package
         """
-        tar_path = Path(self.dest_dir, f'{self.package_id}.tar.gz')
+        tar_path = Path(self.tmp_dir, f'{self.package_id}.tar.gz')
         with tarfile.open(tar_path, "w:gz", compresslevel=1) as tar:
             tar.add(extracted_path, arcname=extracted_path.name)
         rmtree(extracted_path)
         logging.debug(f'Archive file created for package {self.package_id} at {tar_path}')
+        return tar_path
+
+    def move_to_transfer_source(self, archived_path, origin):
+        """Moves archived package to Archivematica transfer source.
+
+        Args:
+            archived_path (pathlib.Path): path to archived packaged.
+            origin (str): uppercased representation of package origin.
+        """
+        bucket_name = self.config[f'{origin}_TRANSFER_SOURCE_BUCKET']
+        bucket_path = self.config.get(f'{origin}_TRANSFER_SOURCE_PATH')
+        destination_path = f'{bucket_path.rstrip("/")}/{archived_path.name}'.lstrip("/") if bucket_path else archived_path.name
+        s3_client = AWSClient(self.s3_role_arn).get_client('s3', self.aws_region)
+        s3_client.upload_file(
+            archived_path,
+            bucket_name,
+            destination_path,
+            ExtraArgs={'ContentType': 'application/gzip'})
+        archived_path.unlink()
+        logging.debug(f'Package {self.package_id} moved to transfer source {bucket_name} at path {bucket_path}')
 
     def cleanup_successful(self):
         """Removes file from source directory."""
@@ -214,7 +270,9 @@ class SIPCreator(object):
         client = AWSClient(self.sns_role_arn).get_client('sns', self.aws_region)
         client.publish(
             TopicArn=self.sns_topic,
-            Message=f'SIP for package {self.package_id} successfully created',
+            MessageGroupId=f'{self.service_name}-{self.package_id}',
+            MessageDeduplicationId=f'{self.service_name}-{self.package_id}-success',
+            Message=json.dumps(package_data, default=str),
             MessageAttributes={
                 'package_id': {
                     'DataType': 'String',
@@ -228,9 +286,9 @@ class SIPCreator(object):
                     'DataType': 'String',
                     'StringValue': 'SUCCESS',
                 },
-                'package_data': {
+                'message': {
                     'DataType': 'String',
-                    'StringValue': package_data
+                    'StringValue': f'SIP for package {self.package_id} successfully created'
                 }
             })
         logging.debug(f'Success message sent for {self.package_id}')
@@ -238,7 +296,6 @@ class SIPCreator(object):
     def cleanup_failed(self):
         """Removes temporary and destination files if they exist."""
         package_name = f"{self.package_id}.tar.gz"
-        Path(self.dest_dir, package_name).unlink(missing_ok=True)
         Path(self.tmp_dir, package_name).unlink(missing_ok=True)
         if Path(self.tmp_dir, self.package_id).is_dir():
             rmtree(Path(self.tmp_dir, self.package_id))
@@ -250,11 +307,13 @@ class SIPCreator(object):
         Args:
             exception (Exception): the error that was thrown.
         """
-        client = AWSClient(self.role_arn).get_client('sns', self.aws_region)
+        client = AWSClient(self.sns_role_arn).get_client('sns', self.aws_region)
         tb = ''.join(traceback.format_exception(exception)[:-1])
         client.publish(
             TopicArn=self.sns_topic,
-            Message=f'SIP creation for package {self.package_id} failed',
+            MessageGroupId=f'{self.service_name}-{self.package_id}',
+            MessageDeduplicationId=f'{self.service_name}-{self.package_id}-failure',
+            Message=tb,
             MessageAttributes={
                 'package_id': {
                     'DataType': 'String',
@@ -270,7 +329,7 @@ class SIPCreator(object):
                 },
                 'message': {
                     'DataType': 'String',
-                    'StringValue': f'{str(exception)}\n\n<pre>{tb}</pre>',
+                    'StringValue': str(exception),
                 }
             })
         logging.debug(f'Failure message sent for {self.package_id}')
@@ -282,18 +341,18 @@ if __name__ == '__main__':
     package_id = getenv('PACKAGE_ID')
     src_dir = getenv('SRC_DIR')
     tmp_dir = getenv('TMP_DIR')
-    dest_dir = getenv('DEST_DIR')
     sns_role_arn = getenv('SNS_ROLE_ARN')
     sns_topic = getenv('SNS_TOPIC')
     ssm_role_arn = getenv('SSM_ROLE_ARN')
+    s3_role_arn = getenv('S3_ROLE_ARN')
     SIPCreator(
         environment,
         aws_region,
         package_id,
         src_dir,
         tmp_dir,
-        dest_dir,
         sns_role_arn,
         sns_topic,
-        ssm_role_arn
+        ssm_role_arn,
+        s3_role_arn,
     ).run()
