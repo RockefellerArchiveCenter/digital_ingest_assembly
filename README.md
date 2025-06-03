@@ -17,7 +17,7 @@ If you have [git](https://git-scm.com/) and [Docker](https://store.docker.com/se
 
 The service processes packages as follows:
 - Sends start message to SNS topic.
-- Fetches data from Zodiac API.
+- Fetches data from [Zodiac Backend API](https://github.com/RockefellerArchiveCenter/zodiac_backend).
 - Extracts compressed TAR file to temporary directory.
 - Validates package against BagIt specification.
 - Creates Archivematica-compliant directory structure.
