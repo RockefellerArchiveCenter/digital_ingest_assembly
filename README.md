@@ -13,8 +13,9 @@ If you have [git](https://git-scm.com/) and [Docker](https://store.docker.com/se
     docker run digital_ingest_assembly
     
 
-## Application Flow
-The application processes packages as follows:
+## Service Flow
+
+The service processes packages as follows:
 - Sends start message to SNS topic.
 - Fetches data from Zodiac API.
 - Extracts compressed TAR file to temporary directory.
