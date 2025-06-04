@@ -10,17 +10,17 @@ aws-assume-role-lib==2.10.0
     # via -r requirements.in
 bagit==1.8.1
     # via -r requirements.in
-boto3==1.38.6
+boto3==1.38.27
     # via
     #   -r requirements.in
     #   aws-assume-role-lib
-botocore==1.38.6
+botocore==1.38.27
     # via
     #   boto3
     #   s3transfer
 certifi==2025.4.26
     # via requests
-charset-normalizer==3.4.1
+charset-normalizer==3.4.2
     # via requests
 idna==3.10
     # via requests
@@ -34,7 +34,7 @@ requests==2.32.3
     # via
     #   -r requirements.in
     #   amclient
-s3transfer==0.12.0
+s3transfer==0.13.0
     # via boto3
 six==1.17.0
     # via python-dateutil
