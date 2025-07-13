@@ -288,7 +288,7 @@ class SIPCreator(object):
                 },
                 'message': {
                     'DataType': 'String',
-                    'StringValue': f'SIP for package {self.package_id} successfully created'
+                    'StringValue': 'Package prepared for Archivematica ingest.'
                 }
             })
         logging.debug(f'Success message sent for {self.package_id}')
