@@ -111,7 +111,7 @@ class SIPCreator(object):
                 },
                 'message': {
                     'DataType': 'String',
-                    'StringValue': f'Assembly for {self.package_id} started.',
+                    'StringValue': 'Archivematica preparation started.',
                 }
             })
         logging.debug('Start notification delivered.')
