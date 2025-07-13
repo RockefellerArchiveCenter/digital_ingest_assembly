@@ -111,7 +111,7 @@ class SIPCreator(object):
                 },
                 'message': {
                     'DataType': 'String',
-                    'StringValue': f'Archivematica preparation started.',
+                    'StringValue': 'Archivematica preparation started.',
                 }
             })
         logging.debug('Start notification delivered.')
