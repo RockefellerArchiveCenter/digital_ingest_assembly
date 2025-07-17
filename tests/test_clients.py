@@ -28,7 +28,6 @@ class ArchivematicaClientTests(TestCase):
             'am_api_key',
             'am_user_name',
             'am_url',
-            'transfer_source',
             'processing_config']
         self.client = ArchivematicaClient(*self.args)
 
@@ -38,8 +37,7 @@ class ArchivematicaClientTests(TestCase):
         self.assertEqual(self.client.client.am_api_key, self.args[0])
         self.assertEqual(self.client.client.am_user_name, self.args[1])
         self.assertEqual(self.client.client.am_url, self.args[2])
-        self.assertEqual(self.client.client.transfer_source, self.args[3])
-        self.assertEqual(self.client.client.processing_config, self.args[4])
+        self.assertEqual(self.client.client.processing_config, self.args[3])
 
     @patch('amclient.AMClient.get_processing_config')
     def test_get_processing_config(self, mock_processing_config):
