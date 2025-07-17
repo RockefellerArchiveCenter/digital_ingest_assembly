@@ -7,21 +7,19 @@ from requests.exceptions import HTTPError
 
 class ArchivematicaClient():
 
-    def __init__(self, am_api_key, am_user_name, am_url, transfer_source, processing_config):
+    def __init__(self, am_api_key, am_user_name, am_url, processing_config):
         """Instantiates an Archivematica client.
 
         Args:
             am_api_key (str): API Key for Archivematica API
             am_user_name (str): username associated with the API key
             am_url (str): base URL for Archivematica instance
-            transfer_source (str): Archivematica UUID for transfer source
             processing_config (str): name of processing config to include
         """
         self.client = AMClient(
             am_api_key=am_api_key,
             am_user_name=am_user_name,
             am_url=am_url,
-            transfer_source=transfer_source,
             processing_config=processing_config,
             enhanced_errors=True)
 
