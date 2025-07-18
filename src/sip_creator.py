@@ -111,7 +111,7 @@ class SIPCreator(object):
                 },
                 'message': {
                     'DataType': 'String',
-                    'StringValue': f'Assembly for {self.package_id} started.',
+                    'StringValue': 'Archivematica preparation started.',
                 }
             })
         logging.debug('Start notification delivered.')
@@ -186,7 +186,6 @@ class SIPCreator(object):
             am_api_key=self.config[f'{origin}_AM_API_KEY'],
             am_user_name=self.config[f'{origin}_AM_USER_NAME'],
             am_url=self.config[f'{origin}_AM_URL'],
-            transfer_source=self.config[f'{origin}_TRANSFER_SOURCE'],
             processing_config=self.config[f'{origin}_PROCESSING_CONFIG'])
 
         if package_data.get('rights_statements'):
@@ -288,7 +287,7 @@ class SIPCreator(object):
                 },
                 'message': {
                     'DataType': 'String',
-                    'StringValue': f'SIP for package {self.package_id} successfully created'
+                    'StringValue': 'Package prepared for Archivematica ingest.'
                 }
             })
         logging.debug(f'Success message sent for {self.package_id}')

@@ -188,7 +188,6 @@ class SIPCreatorTests(TestCase):
             "AURORA_AM_API_KEY": "api key",
             "AURORA_AM_USER_NAME": "user name",
             "AURORA_AM_URL": "url",
-            "AURORA_TRANSFER_SOURCE": "transfer source",
             "AURORA_PROCESSING_CONFIG": "processing config"
         }
 
@@ -199,7 +198,6 @@ class SIPCreatorTests(TestCase):
             am_api_key='api key',
             am_user_name='user name',
             am_url='url',
-            transfer_source='transfer source',
             processing_config='processing config')
         mock_data.assert_called_once_with(['data/objects/example.txt'], [{"foo": "bar"}])
         self.assertTrue((package_path / 'data' / 'metadata' / 'rights.csv').is_file())

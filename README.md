@@ -13,6 +13,25 @@ If you have [git](https://git-scm.com/) and [Docker](https://store.docker.com/se
     docker run digital_ingest_assembly
     
 
+## Service Flow
+
+The service processes packages as follows:
+- Sends start message to SNS topic.
+- Fetches data from [Zodiac Backend API](https://github.com/RockefellerArchiveCenter/zodiac_backend).
+- Extracts compressed TAR file to temporary directory.
+- Validates package against BagIt specification.
+- Creates Archivematica-compliant directory structure.
+- Adds rights CSV, processing config, and data to bag-info.txt
+- Creates a compressed TAR file from a package.
+- Moves archived package to Archivematica transfer source.
+- Removes file from source directory.
+- Sends success message to SNS topic.
+
+If errors are encountered during any of the above steps, the service:
+- Removes temporary and destination files if they exist.
+- Sends failure message to SNS topic.
+
+
 ## Usage
 
 This repository is intended to be deployed as an ECS Task in AWS infrastructure.
