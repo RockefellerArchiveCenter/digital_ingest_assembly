@@ -147,6 +147,8 @@ class SIPCreatorTests(TestCase):
         for dir in ['objects', 'logs', 'metadata', 'metadata/submissionDocumentation']:
             self.assertTrue((package_path / 'data' / dir).is_dir())
         self.assertTrue((package_path / 'data' / 'objects' / 'metadata.json').is_file())
+        self.assertTrue((package_path / 'data' / 'objects' / '2010 PRD 206 FF.pdf').is_file())
+        self.assertTrue((package_path / 'data' / 'objects' / 'notes' / '2010 PRD 206 FF.pdf').is_file())
 
     @patch('src.clients.ArchivematicaClient.__init__')
     @patch('src.clients.ArchivematicaClient.get_rights_data')
