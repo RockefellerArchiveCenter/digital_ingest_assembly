@@ -167,9 +167,12 @@ class SIPCreator(object):
         docs_path = metadata_path / 'submissionDocumentation'
         for p in [objects_path, log_path, docs_path]:
             p.mkdir(parents=True)
-        for f in data_path.rglob('*'):
+        files_to_move = list(data_path.rglob('*'))
+        for f in files_to_move:  # TODO this is wrong, will put master and master edited in same directory
             if f.is_file():
-                f.rename(objects_path / f.name)
+                new_path = objects_path / f.relative_to(data_path)
+                new_path.parent.mkdir(parents=True, exist_ok=True)
+                f.rename(new_path)
         logging.debug(f'Package {self.package_id} restructured')
 
     def add_data(self, extracted_path, package_data, origin):
