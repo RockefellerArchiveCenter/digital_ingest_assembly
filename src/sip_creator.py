@@ -197,7 +197,7 @@ class SIPCreator(object):
                 'start_date', 'end_date', 'terms', 'citation', 'note', 'grant_act',
                 'grant_restriction', 'grant_start_date', 'grant_end_date',
                 'grant_note', 'doc_id_type', 'doc_id_value', 'doc_id_role']
-            file_names = [str(f).replace(str(extracted_path), '').lstrip('/') for f in (extracted_path / 'data' / 'objects').rglob('*')]
+            file_names = [str(f).replace(str(extracted_path), '').lstrip('/') for f in (extracted_path / 'data' / 'objects').rglob('*') if f.is_file()]
             rights_data = am_client.get_rights_data(
                 file_names,
                 package_data['rights_statements'])
