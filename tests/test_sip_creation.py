@@ -1,11 +1,13 @@
 import tarfile
 from pathlib import Path
-from shutil import copy, rmtree
+from shutil import copy
 from unittest import TestCase
 from unittest.mock import patch
 
 import bagit
 import boto3
+import pytest
+from botocore.exceptions import ClientError
 from moto import mock_aws
 
 from src.sip_creator import SIPCreator
@@ -17,15 +19,13 @@ class SIPCreatorTests(TestCase):
     def setUp(self):
         self.fixture_path = Path('tests', 'fixtures')
         self.package_id = '0edb4066-980c-491f-bd73-c80a6546ff6d'
-        self.src_dir = 'source_dir'
-        self.tmp_dir = 'temp_dir'
-        self.args = ['dev', 'us-east-1', self.package_id, self.src_dir, self.tmp_dir,
+        self.assembly_bucket = 'rac-dev-digital-ingest-assembly'
+        self.ebs_path = 'ebs'
+        self.args = ['dev', 'us-east-1', self.package_id, self.assembly_bucket, self.ebs_path,
                      'arn:aws:iam::123456789012:role/digital-ingest-sns-role', 'topic',
                      'arn:aws:iam::123456789012:role/digital-ingest-ssm-role',
                      'arn:aws:iam::123456789012:role/digital-ingest-s3-role']
         self.sip_creator = SIPCreator(*self.args)
-        for dir in [self.src_dir, self.tmp_dir]:
-            Path(dir).mkdir()
 
     def copy_extracted(self, target_path):
         current_path = Path(self.fixture_path, 'bags', f"{self.package_id}.tar.gz")
@@ -38,8 +38,8 @@ class SIPCreatorTests(TestCase):
         mock_config.return_value = config
         self.assertEqual(self.sip_creator.aws_region, self.args[1])
         self.assertEqual(self.sip_creator.package_id, self.package_id)
-        self.assertEqual(self.sip_creator.tmp_dir, self.tmp_dir)
-        self.assertEqual(self.sip_creator.src_dir, self.src_dir)
+        self.assertEqual(self.sip_creator.assembly_bucket, self.assembly_bucket)
+        self.assertEqual(self.sip_creator.ebs_path, self.ebs_path)
         self.assertEqual(self.sip_creator.service_name, "digital_ingest_assembly")
         self.assertEqual(self.sip_creator.sns_role_arn, self.args[5])
         self.assertEqual(self.sip_creator.sns_topic, self.args[6])
@@ -48,7 +48,6 @@ class SIPCreatorTests(TestCase):
         self.assertEqual(self.sip_creator.config, config)
 
     @patch('src.sip_creator.SIPCreator.send_failure_message')
-    @patch('src.sip_creator.SIPCreator.cleanup_failed')
     @patch('src.sip_creator.SIPCreator.send_success_message')
     @patch('src.sip_creator.SIPCreator.cleanup_successful')
     @patch('src.sip_creator.SIPCreator.move_to_transfer_source')
@@ -71,7 +70,6 @@ class SIPCreatorTests(TestCase):
             mock_move_transfer,
             mock_cleanup_successful,
             mock_success_message,
-            mock_cleanup_failed,
             mock_failure_message):
         """Assert that all methods are called with correct args."""
         extracted_path = Path("foo")
@@ -95,13 +93,11 @@ class SIPCreatorTests(TestCase):
         mock_move_transfer.assert_called_once_with(archived_path, "AURORA")
         mock_cleanup_successful.assert_called_once_with()
         mock_success_message.assert_called_once_with(package_data)
-        mock_cleanup_failed.assert_not_called()
         mock_failure_message.assert_not_called()
 
         exception = Exception("foo")
         mock_get_package.side_effect = exception
         self.sip_creator.run()
-        mock_cleanup_failed.assert_called_once()
         mock_failure_message.assert_called_once_with(exception)
 
     @patch('src.clients.ZodiacClient.__init__')
@@ -126,21 +122,28 @@ class SIPCreatorTests(TestCase):
             output = self.sip_creator.format_origin(input)
             self.assertEqual(output, expected)
 
+    @mock_aws
     def test_extract(self):
         """Asserts extract results in expected files and dirs."""
         fixture_path = self.fixture_path / 'bags' / f'{self.package_id}.tar.gz'
-        src_path = Path(self.src_dir, f'{self.package_id}.tar.gz')
-        copy(fixture_path, src_path)
+        src_path = Path(self.ebs_path, f'{self.package_id}.tar.gz')
+        s3 = boto3.client('s3', region_name='us-east-1')
+        s3.create_bucket(Bucket=self.sip_creator.assembly_bucket)
+        s3.upload_file(
+            fixture_path,
+            self.sip_creator.assembly_bucket,
+            f'{self.package_id}.tar.gz',
+            ExtraArgs={'ContentType': 'application/gzip'})
 
         self.sip_creator.extract()
 
-        self.assertTrue(Path(self.tmp_dir, self.package_id).is_dir())
+        self.assertTrue(Path(self.ebs_path, self.package_id).is_dir())
         self.assertTrue(src_path.is_file())
 
     def test_restructuring(self):
         """Assert package is restructured correctly."""
-        self.copy_extracted(self.src_dir)
-        package_path = Path(self.src_dir, self.package_id)
+        self.copy_extracted(self.ebs_path)
+        package_path = Path(self.ebs_path, self.package_id)
 
         self.sip_creator.restructure(package_path)
 
@@ -176,8 +179,8 @@ class SIPCreatorTests(TestCase):
                                    'doc_id_role': ''}]
         mock_processing_config.return_value = "<processingMCP><preconfiguredChoices></preconfiguredChoices></processingMCP>"
         mock_validate.return_value = {"valid": "true"}
-        package_path = Path(self.tmp_dir, self.package_id)
-        self.copy_extracted(self.tmp_dir)
+        package_path = Path(self.ebs_path, self.package_id)
+        self.copy_extracted(self.ebs_path)
         (package_path / 'data' / 'objects').mkdir()
         (package_path / 'data' / 'objects' / 'example.txt').touch()
         package_data = {"origin": "aurora", "rights_statements": [{"foo": "bar"}]}
@@ -209,12 +212,12 @@ class SIPCreatorTests(TestCase):
 
     def test_archive(self):
         """Asserts package is archived to correct location"""
-        package_path = Path(self.tmp_dir, self.package_id)
-        self.copy_extracted(self.tmp_dir)
+        package_path = Path(self.ebs_path, self.package_id)
+        self.copy_extracted(self.ebs_path)
 
         self.sip_creator.archive(package_path)
 
-        self.assertTrue(Path(self.tmp_dir, f'{self.package_id}.tar.gz').is_file())
+        self.assertTrue(Path(self.ebs_path, f'{self.package_id}.tar.gz').is_file())
         self.assertFalse(package_path.exists())
 
     @mock_aws
@@ -230,7 +233,7 @@ class SIPCreatorTests(TestCase):
 
         for input_path, bucket_path in [("", package_name), ("/", package_name), ("aurora/", f'aurora/{package_name}')]:
             fixture_path = self.fixture_path / 'bags' / package_name
-            tmp_path = Path(self.tmp_dir, package_name)
+            tmp_path = Path(self.ebs_path, package_name)
             copy(fixture_path, tmp_path)
             self.sip_creator.config[f'{package_origin}_TRANSFER_SOURCE_PATH'] = input_path
 
@@ -241,28 +244,21 @@ class SIPCreatorTests(TestCase):
 
             s3.delete_object(Bucket=bucket_name, Key=bucket_path)
 
+    @mock_aws
     def test_cleanup_successful(self):
-        """Asserts package is cleaned up after success."""
-        source_path = Path(self.src_dir, f"{self.package_id}.tar.gz")
-        source_path.touch()
+        """Asserts package is removed from S3."""
+        package_name = f'{self.package_id}.tar.gz'
+        s3 = boto3.client('s3', region_name='us-east-1')
+        s3.create_bucket(Bucket=self.assembly_bucket)
+        s3.put_object(
+            Bucket=self.assembly_bucket,
+            Key=package_name,
+            Body="foo")
 
         self.sip_creator.cleanup_successful()
 
-        self.assertFalse(source_path.exists())
-
-    def test_cleanup_failed(self):
-        """Asserts package is cleaned up after failure"""
-        package_name = f"{self.package_id}.tar.gz"
-        Path(self.tmp_dir, self.package_id).mkdir(parents=True)
-        Path(self.tmp_dir, package_name).touch()
-
-        self.sip_creator.cleanup_failed()
-
-        for path in [
-                Path(self.tmp_dir, package_name),
-                Path(self.tmp_dir, self.package_id)]:
-            self.assertFalse(path.exists())
-
-    def tearDown(self):
-        for dir in [self.src_dir, self.tmp_dir]:
-            rmtree(dir)
+        with pytest.raises(ClientError) as err:
+            s3.head_object(
+                Bucket=self.assembly_bucket,
+                Key=package_name)
+        assert '404' in str(err)

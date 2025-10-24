@@ -23,16 +23,16 @@ class SIPCreator(object):
                  environment,
                  aws_region,
                  package_id,
-                 src_dir,
-                 tmp_dir,
+                 assembly_bucket,
+                 ebs_path,
                  sns_role_arn,
                  sns_topic,
                  ssm_role_arn,
                  s3_role_arn):
         self.aws_region = aws_region
         self.package_id = package_id
-        self.tmp_dir = tmp_dir
-        self.src_dir = src_dir
+        self.ebs_path = ebs_path
+        self.assembly_bucket = assembly_bucket
         self.service_name = "digital_ingest_assembly"
         self.sns_role_arn = sns_role_arn
         self.sns_topic = sns_topic
@@ -59,7 +59,6 @@ class SIPCreator(object):
                 f'Package {self.package_id} prepared for Archivematica ingest.')
         except Exception as e:
             logging.error(e)
-            self.cleanup_failed()
             self.send_failure_message(e)
 
     def get_config(self, environment):
@@ -137,10 +136,15 @@ class SIPCreator(object):
         Returns:
             pathlib.Path: path to extracted package
         """
-        current_path = Path(self.src_dir, f"{self.package_id}.tar.gz")
-        unpacked_path = Path(self.tmp_dir, self.package_id)
-        with tarfile.open(current_path, "r:*") as tf:
-            tf.extractall(self.tmp_dir)
+        s3_client = AWSClient(self.s3_role_arn).get_client('s3', self.aws_region)
+        download_path = Path(self.ebs_path, f"{self.package_id}.tar.gz")
+        s3_client.download_file(
+            self.assembly_bucket,
+            f"{self.package_id}.tar.gz",
+            download_path)
+        unpacked_path = Path(self.ebs_path, self.package_id)
+        with tarfile.open(download_path, "r:*") as tf:
+            tf.extractall(self.ebs_path)
         logging.debug(f'Package {self.package_id} unpacked to {unpacked_path}')
         return unpacked_path
 
@@ -168,7 +172,7 @@ class SIPCreator(object):
         for p in [objects_path, log_path, docs_path]:
             p.mkdir(parents=True)
         files_to_move = list(data_path.rglob('*'))
-        for f in files_to_move:  # TODO this is wrong, will put master and master edited in same directory
+        for f in files_to_move:
             if f.is_file():
                 new_path = objects_path / f.relative_to(data_path)
                 new_path.parent.mkdir(parents=True, exist_ok=True)
@@ -232,7 +236,7 @@ class SIPCreator(object):
         Args:
             extracted_path (pathlib.Path): path to package
         """
-        tar_path = Path(self.tmp_dir, f'{self.package_id}.tar.gz')
+        tar_path = Path(self.ebs_path, f'{self.package_id}.tar.gz')
         with tarfile.open(tar_path, "w:gz", compresslevel=1) as tar:
             tar.add(extracted_path, arcname=extracted_path.name)
         rmtree(extracted_path)
@@ -259,9 +263,11 @@ class SIPCreator(object):
         logging.debug(f'Package {self.package_id} moved to transfer source {bucket_name} at path {bucket_path}')
 
     def cleanup_successful(self):
-        """Removes file from source directory."""
-        Path(self.src_dir, f"{self.package_id}.tar.gz").unlink()
-        logging.debug(f'Cleanup from sucessful job complete for {self.package_id}')
+        """Cleans up files from successful job."""
+        s3_client = AWSClient(self.s3_role_arn).get_client('s3', self.aws_region)
+        s3_client.delete_object(
+            Bucket=self.assembly_bucket,
+            Key=f"{self.package_id}.tar.gz")
 
     def send_success_message(self, package_data):
         """Sends success message to SNS topic.
@@ -294,14 +300,6 @@ class SIPCreator(object):
                 }
             })
         logging.debug(f'Success message sent for {self.package_id}')
-
-    def cleanup_failed(self):
-        """Removes temporary and destination files if they exist."""
-        package_name = f"{self.package_id}.tar.gz"
-        Path(self.tmp_dir, package_name).unlink(missing_ok=True)
-        if Path(self.tmp_dir, self.package_id).is_dir():
-            rmtree(Path(self.tmp_dir, self.package_id))
-        logging.debug(f'Cleanup from failed job complete for {self.package_id}')
 
     def send_failure_message(self, exception):
         """Sends failure message to SNS topic.
@@ -341,8 +339,8 @@ if __name__ == '__main__':
     environment = getenv('ENVIRONMENT')
     aws_region = getenv('AWS_REGION')
     package_id = getenv('PACKAGE_ID')
-    src_dir = getenv('SRC_DIR')
-    tmp_dir = getenv('TMP_DIR')
+    assembly_bucket = getenv('ASSEMBLY_BUCKET')
+    ebs_path = getenv('EBS_PATH')
     sns_role_arn = getenv('SNS_ROLE_ARN')
     sns_topic = getenv('SNS_TOPIC')
     ssm_role_arn = getenv('SSM_ROLE_ARN')
@@ -351,8 +349,8 @@ if __name__ == '__main__':
         environment,
         aws_region,
         package_id,
-        src_dir,
-        tmp_dir,
+        assembly_bucket,
+        ebs_path,
         sns_role_arn,
         sns_topic,
         ssm_role_arn,
