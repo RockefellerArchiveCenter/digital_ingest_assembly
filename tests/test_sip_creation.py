@@ -184,11 +184,6 @@ class SIPCreatorTests(TestCase):
         (package_path / 'data' / 'objects').mkdir()
         (package_path / 'data' / 'objects' / 'example.txt').touch()
         package_data = {"origin": "aurora", "rights_statements": [{"foo": "bar"}]}
-        expected = {
-            'origin': 'aurora',
-            'rights_statements': [{'foo': 'bar'}],
-            'identifiers': {
-                'archivesspace_archival_object': '/repositories/2/archival_objects/1'}}
         self.sip_creator.config = {
             "AURORA_AM_API_KEY": "api key",
             "AURORA_AM_USER_NAME": "user name",
@@ -198,7 +193,7 @@ class SIPCreatorTests(TestCase):
 
         output = self.sip_creator.add_data(package_path, package_data, 'AURORA')
 
-        self.assertEqual(output, expected)
+        self.assertEqual(output, package_data)
         mock_init.assert_called_once_with(
             am_api_key='api key',
             am_user_name='user name',
