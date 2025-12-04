@@ -221,11 +221,6 @@ class SIPCreator(object):
         logging.debug(f'Processing config added to package {self.package_id}')
 
         bag = bagit.Bag(str(extracted_path))
-        archivesspace_uri = bag.info.get('ArchivesSpace-URI')
-        if archivesspace_uri:
-            if not package_data.get('identifiers'):
-                package_data['identifiers'] = {}
-            package_data['identifiers'].update({'archivesspace_archival_object': archivesspace_uri})
         bag.save(manifests=True)
         logging.debug(f'bag-info.txt for package {self.package_id} updated')
         return package_data
