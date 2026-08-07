@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.2](https://github.com/RockefellerArchiveCenter/digital_ingest_assembly/compare/v1.0.1...v1.0.2) (2026-08-07)
+
+
+### Bug Fixes
+
+* **deps:** Scheduled dependency updates ([59d71dd](https://github.com/RockefellerArchiveCenter/digital_ingest_assembly/commit/59d71ddd0fffc8d797bbcdb304b685cf98d71a0d))
+* **deps:** Scheduled dependency updates ([59d71dd](https://github.com/RockefellerArchiveCenter/digital_ingest_assembly/commit/59d71ddd0fffc8d797bbcdb304b685cf98d71a0d))
+* **deps:** Scheduled dependency updates ([6baa82a](https://github.com/RockefellerArchiveCenter/digital_ingest_assembly/commit/6baa82a001c11325776693cbf76436b7fa67340b))
+* **deps:** Scheduled dependency updates ([6baa82a](https://github.com/RockefellerArchiveCenter/digital_ingest_assembly/commit/6baa82a001c11325776693cbf76436b7fa67340b))
+* **deps:** Scheduled dependency updates ([b1ffec5](https://github.com/RockefellerArchiveCenter/digital_ingest_assembly/commit/b1ffec506dc737d4f1d3da3f953706bf422e60b4))
+
 ## [1.0.1](https://github.com/RockefellerArchiveCenter/digital_ingest_assembly/compare/v1.0.0...v1.0.1) (2026-07-06)
 
 
