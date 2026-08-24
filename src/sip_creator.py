@@ -49,6 +49,7 @@ class SIPCreator(object):
             extracted_path = self.extract()
             self.validate(extracted_path)
             self.restructure(extracted_path)
+            self.update_permissions(extracted_path)
             updated_package = self.add_data(extracted_path, package_data, formatted_origin)
             self.validate(extracted_path)
             archived_path = self.archive(extracted_path)
@@ -178,6 +179,20 @@ class SIPCreator(object):
                 new_path.parent.mkdir(parents=True, exist_ok=True)
                 f.rename(new_path)
         logging.debug(f'Package {self.package_id} restructured')
+
+    def update_permissions(self, extracted_path):
+        """Updates permissions on files in package.
+
+        Args:
+            extracted_path (pathlib.Path): path to package
+        """
+        payload_path = extracted_path / 'data'
+        payload_path.chmod(0o755)
+        for dirpath, dirnames, filenames in payload_path.walk():
+            for d in dirnames:
+                Path(dirpath, d).chmod(0o755)
+            for f in filenames:
+                Path(dirpath, f).chmod(0o755)
 
     def add_data(self, extracted_path, package_data, origin):
         """Adds rights CSV, processing config, and data to bag-info.txt

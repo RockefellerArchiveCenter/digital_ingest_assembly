@@ -53,6 +53,7 @@ class SIPCreatorTests(TestCase):
     @patch('src.sip_creator.SIPCreator.move_to_transfer_source')
     @patch('src.sip_creator.SIPCreator.archive')
     @patch('src.sip_creator.SIPCreator.add_data')
+    @patch('src.sip_creator.SIPCreator.update_permissions')
     @patch('src.sip_creator.SIPCreator.restructure')
     @patch('src.sip_creator.SIPCreator.validate')
     @patch('src.sip_creator.SIPCreator.extract')
@@ -65,6 +66,7 @@ class SIPCreatorTests(TestCase):
             mock_extract,
             mock_validate,
             mock_restructure,
+            mock_permissions,
             mock_add_data,
             mock_archive,
             mock_move_transfer,
@@ -88,6 +90,7 @@ class SIPCreatorTests(TestCase):
         self.assertEqual(mock_validate.call_count, 2)
         mock_validate.assert_called_with(extracted_path)
         mock_restructure.assert_called_once_with(extracted_path)
+        mock_permissions.assert_called_once_with(extracted_path)
         mock_add_data.assert_called_once_with(extracted_path, package_data, "AURORA")
         mock_archive.assert_called_once_with(extracted_path)
         mock_move_transfer.assert_called_once_with(archived_path, "AURORA")
@@ -152,6 +155,21 @@ class SIPCreatorTests(TestCase):
         self.assertTrue((package_path / 'data' / 'objects' / 'metadata.json').is_file())
         self.assertTrue((package_path / 'data' / 'objects' / '2010 PRD 206 FF.pdf').is_file())
         self.assertTrue((package_path / 'data' / 'objects' / 'notes' / '2010 PRD 206 FF.pdf').is_file())
+
+    def test_update_permissions(self):
+        """Assert permissions are set correctly."""
+        self.copy_extracted(self.ebs_path)
+        package_path = Path(self.ebs_path, self.package_id)
+
+        self.sip_creator.update_permissions(package_path)
+
+        payload_path = package_path / 'data'
+        self.assertEqual(payload_path.stat().st_mode, 16877)
+        for dirpath, dirnames, filenames in payload_path.walk():
+            for d in dirnames:
+                self.assertEqual(Path(dirpath, d).stat().st_mode, 16877)
+            for f in filenames:
+                self.assertEqual(Path(dirpath, f).stat().st_mode, 33261)
 
     @patch('src.clients.ArchivematicaClient.__init__')
     @patch('src.clients.ArchivematicaClient.get_rights_data')
