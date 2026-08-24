@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.3](https://github.com/RockefellerArchiveCenter/digital_ingest_assembly/compare/v1.0.2...v1.0.3) (2026-08-24)
+
+
+### Bug Fixes
+
+* change permissions on package payload before rebagging ([55913d3](https://github.com/RockefellerArchiveCenter/digital_ingest_assembly/commit/55913d32107477493b94ae9db809bf891456f7b5))
+* change permissions on package payload before rebagging ([527de05](https://github.com/RockefellerArchiveCenter/digital_ingest_assembly/commit/527de05dcdfa4339123f519246cf8e0452c989bf))
+
 ## [1.0.2](https://github.com/RockefellerArchiveCenter/digital_ingest_assembly/compare/v1.0.1...v1.0.2) (2026-08-07)
 
 
