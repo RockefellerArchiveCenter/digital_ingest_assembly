@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.6](https://github.com/RockefellerArchiveCenter/digital_ingest_assembly/compare/v1.0.5...v1.0.6) (2026-10-21)
+
+
+### Bug Fixes
+
+* update pip ([937ec72](https://github.com/RockefellerArchiveCenter/digital_ingest_assembly/commit/937ec72cf625b7374bbd0454798bdb8dd99d0998))
+* update pip ([937ec72](https://github.com/RockefellerArchiveCenter/digital_ingest_assembly/commit/937ec72cf625b7374bbd0454798bdb8dd99d0998))
+* update pip ([06706de](https://github.com/RockefellerArchiveCenter/digital_ingest_assembly/commit/06706dee6da88ea68f7c4ed1c6482df78ec0152b))
+* update pip ([06706de](https://github.com/RockefellerArchiveCenter/digital_ingest_assembly/commit/06706dee6da88ea68f7c4ed1c6482df78ec0152b))
+* update pip ([b394059](https://github.com/RockefellerArchiveCenter/digital_ingest_assembly/commit/b394059c46ab9ba2af2a17a533008fc4555f4b11))
+
 ## [1.0.5](https://github.com/RockefellerArchiveCenter/digital_ingest_assembly/compare/v1.0.4...v1.0.5) (2026-10-05)
 
 
