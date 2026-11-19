@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.8](https://github.com/RockefellerArchiveCenter/digital_ingest_assembly/compare/v1.0.7...v1.0.8) (2026-11-19)
+
+
+### Bug Fixes
+
+* update deploy ([c625031](https://github.com/RockefellerArchiveCenter/digital_ingest_assembly/commit/c6250310a9cbc4bb2efcff37d14594869e63eb7a))
+* update deploy workflow ([8385b8c](https://github.com/RockefellerArchiveCenter/digital_ingest_assembly/commit/8385b8c02b301748538e20f597f368a7133af349))
+* update workflow ([537d98d](https://github.com/RockefellerArchiveCenter/digital_ingest_assembly/commit/537d98df918982546a88405057a2ccc8c613d70b))
+
 ## [1.0.7](https://github.com/RockefellerArchiveCenter/digital_ingest_assembly/compare/v1.0.6...v1.0.7) (2026-11-02)
 
 
